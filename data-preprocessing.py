@@ -1,25 +1,52 @@
 import neurokit2 as nk
 import numpy as np
-import matplotlib.pyplot as plt
+import csv
+import os.path
+from scipy.stats import zscore
 
-if __name__ == '__main__':
-    # Retrieve ECG data from data folder (sampling rate= 1000 Hz)
-    ecg_signal = nk.data(dataset="ecg_3000hz")['ECG']
 
-    # Extract R-peaks locations
-    _, rpeaks = nk.ecg_peaks(ecg_signal, sampling_rate=3000)
-
-    # Delineate the ECG signal
-    _, waves_peak = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=3000, method="peak")
-
-    # Zooming into the first 3 R-peaks, with focus on T_peaks, P-peaks, Q-peaks and S-peaks
-    plot = nk.events_plot([waves_peak['ECG_T_Peaks'][:3],
-                           waves_peak['ECG_P_Peaks'][:3],
-                           waves_peak['ECG_Q_Peaks'][:3],
-                           waves_peak['ECG_S_Peaks'][:3]], ecg_signal[:12500])
-
+# extract the peak, for now the database is of example
+def extract_peak(ecg_signal=nk.data(dataset="ecg_3000hz")['ECG']):
+    _, rpeak = nk.ecg_peaks(ecg_signal, sampling_rate=3000)
     # Delineate the ECG signal and visualizing all peaks of ECG complexes
-    _, waves_peak = nk.ecg_delineate(ecg_signal, rpeaks, sampling_rate=3000, method="peak", show=True,
+    _, waves_peak = nk.ecg_delineate(ecg_signal, rpeak, sampling_rate=3000, method="dwt", show=True,
                                      show_type='peaks')
 
-    print(waves_peak['ECG_S_Peaks'])
+    # normalization
+    r_normalized = zscore(rpeak['ECG_R_Peaks'], nan_policy='omit')
+    p_normalized = zscore(waves_peak['ECG_P_Peaks'], nan_policy='omit')
+    t_normalized = zscore(waves_peak['ECG_T_Peaks'], nan_policy='omit')
+    q_normalized = zscore(waves_peak['ECG_Q_Peaks'], nan_policy='omit')
+    s_normalized = zscore(waves_peak['ECG_S_Peaks'], nan_policy='omit')
+
+    # extract the mean
+    t_peak = np.nanmean(t_normalized)
+    q_peak = np.nanmean(q_normalized)
+    s_peak = np.nanmean(s_normalized)
+    p_peak = np.nanmean(p_normalized)
+    r_peak = np.nanmean(r_normalized)
+
+    peaks = np.array([q_peak - r_peak,
+                      r_peak - s_peak,
+                      p_peak - r_peak,
+                      r_peak - t_peak,
+                      s_peak - t_peak,
+                      p_peak - q_peak,
+                      p_peak - t_peak,
+                      ])
+
+    return peaks
+
+
+def write_to_file(filename, dictionary, header):
+    exists = os.path.exists(filename)
+    with open(filename, "a") as ecg_samples:
+        writer = csv.writer(ecg_samples)
+        if not exists:
+            writer.writerow(header)
+        writer.writerow(dictionary)
+
+
+if __name__ == '__main__':
+    headers = ['RQ', 'RS', 'RP', 'RT', 'ST', 'PQ', 'PT']
+    write_to_file("ecg_samples.csv", extract_peak(), headers)
