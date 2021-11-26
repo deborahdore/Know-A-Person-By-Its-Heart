@@ -13,7 +13,7 @@ def extract_peak(ecg_signal_file):
         try:
             _, rpeak = nk.ecg_peaks(data[patient_name], sampling_rate=3000)
             # Delineate the ECG signal and visualizing all peaks of ECG complexes
-            _, waves_peak = nk.ecg_delineate(data[patient_name], rpeak, sampling_rate=3000, method="dwt", show=True,
+            _, waves_peak = nk.ecg_delineate(data[patient_name], rpeak, sampling_rate=3000, method="dwt", show=False,
                                              show_type='peaks')
 
             r_peak = rpeak['ECG_R_Peaks']
@@ -48,7 +48,6 @@ def write_to_file(matr_data, file):
         writer = csv.writer(ecg_samples)
         if not exists:
             writer.writerow(header)
-        print(matr_data)
         for row in matr_data:
             writer.writerow(row)
 
