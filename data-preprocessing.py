@@ -1,52 +1,71 @@
 import neurokit2 as nk
-import numpy as np
 import csv
 import os.path
-from scipy.stats import zscore
+import glob
+import numpy as np
+import wfdb
+from neurokit2 import NeuroKitWarning
 
 
-# extract the peak, for now the database is of example
-def extract_peak(ecg_signal=nk.data(dataset="ecg_3000hz")['ECG']):
-    _, rpeak = nk.ecg_peaks(ecg_signal, sampling_rate=3000)
-    # Delineate the ECG signal and visualizing all peaks of ECG complexes
-    _, waves_peak = nk.ecg_delineate(ecg_signal, rpeak, sampling_rate=3000, method="dwt", show=True,
-                                     show_type='peaks')
+def extract_peak(ecg_signal_file):
+    data = np.load(ecg_signal_file)
+    matr_data = []
+    for patient_name in data.files:
+        try:
+            _, rpeak = nk.ecg_peaks(data[patient_name], sampling_rate=3000)
+            # Delineate the ECG signal and visualizing all peaks of ECG complexes
+            _, waves_peak = nk.ecg_delineate(data[patient_name], rpeak, sampling_rate=3000, method="dwt", show=True,
+                                             show_type='peaks')
 
-    # normalization
-    r_normalized = zscore(rpeak['ECG_R_Peaks'], nan_policy='omit')
-    p_normalized = zscore(waves_peak['ECG_P_Peaks'], nan_policy='omit')
-    t_normalized = zscore(waves_peak['ECG_T_Peaks'], nan_policy='omit')
-    q_normalized = zscore(waves_peak['ECG_Q_Peaks'], nan_policy='omit')
-    s_normalized = zscore(waves_peak['ECG_S_Peaks'], nan_policy='omit')
+            r_peak = rpeak['ECG_R_Peaks']
+            p_peak = waves_peak['ECG_P_Peaks']
+            t_peak = waves_peak['ECG_T_Peaks']
+            q_peak = waves_peak['ECG_Q_Peaks']
+            s_peak = waves_peak['ECG_S_Peaks']
 
-    # extract the mean
-    t_peak = np.nanmean(t_normalized)
-    q_peak = np.nanmean(q_normalized)
-    s_peak = np.nanmean(s_normalized)
-    p_peak = np.nanmean(p_normalized)
-    r_peak = np.nanmean(r_normalized)
-
-    peaks = np.array([q_peak - r_peak,
-                      r_peak - s_peak,
-                      p_peak - r_peak,
-                      r_peak - t_peak,
-                      s_peak - t_peak,
-                      p_peak - q_peak,
-                      p_peak - t_peak,
-                      ])
-
-    return peaks
+            for index in range(len(r_peak)):
+                matr_data.append(
+                    [patient_name, r_peak[index], p_peak[index], t_peak[index], q_peak[index], s_peak[index]])
+        except NeuroKitWarning:
+            print("Too few peaks detected for patient:", patient_name)
+        except RuntimeWarning:
+            print("Warning extracting peaks from patient:", patient_name)
+        except RuntimeError:
+            print("Errors extracting peaks from patient:", patient_name)
+    return matr_data
 
 
-def write_to_file(filename, dictionary, header):
-    exists = os.path.exists(filename)
-    with open(filename, "a") as ecg_samples:
+def write_to_file(matr_data, file):
+    exists = os.path.exists(file)
+    header = ['PATIENT_NAME', 'R_PEAK', 'P_PEAK', 'T_PEAK', 'Q_PEAK', 'S_PEAK']
+    with open(file, "a") as ecg_samples:
         writer = csv.writer(ecg_samples)
         if not exists:
             writer.writerow(header)
-        writer.writerow(dictionary)
+        print(matr_data)
+        for row in matr_data:
+            writer.writerow(row)
+
+
+def transform_ecg_data(p, new_file_name):
+    template = p + "*/*.hea"
+    file_list = glob.glob(template)
+
+    data_raw = {}
+
+    for file in file_list:
+        patient, record_id = file[len(p):-4].split("/")
+        m = wfdb.rdsamp(file[:-4], channel_names=["v6"])[0]
+        arr = np.array([m[i][0] for i in range(len(m))])
+        key = patient + "/" + record_id
+        data_raw[key] = arr.astype(np.float32)
+
+    np.savez_compressed(new_file_name, **data_raw)
 
 
 if __name__ == '__main__':
-    headers = ['RQ', 'RS', 'RP', 'RT', 'ST', 'PQ', 'PT']
-    write_to_file("ecg_samples.csv", extract_peak(), headers)
+    dataset = "ptb-diagnostic-ecg-database-1.0.0/"
+    data_transformed_file = "data_raw.npz"
+    new_features_file = "dataset_processed.csv"
+    transform_ecg_data(dataset, data_transformed_file)
+    write_to_file(extract_peak(data_transformed_file), new_features_file)
