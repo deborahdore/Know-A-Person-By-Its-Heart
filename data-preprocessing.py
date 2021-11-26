@@ -4,7 +4,6 @@ import os.path
 import glob
 import numpy as np
 import wfdb
-from neurokit2 import NeuroKitWarning
 
 
 def extract_peak(ecg_signal_file):
@@ -23,15 +22,22 @@ def extract_peak(ecg_signal_file):
             q_peak = waves_peak['ECG_Q_Peaks']
             s_peak = waves_peak['ECG_S_Peaks']
 
-            for index in range(len(r_peak)):
+            total_len = min(len(r_peak), len(p_peak), len(t_peak), len(q_peak), len(s_peak))
+            for index in range(total_len):
                 matr_data.append(
                     [patient_name, r_peak[index], p_peak[index], t_peak[index], q_peak[index], s_peak[index]])
-        except NeuroKitWarning:
-            print("Too few peaks detected for patient:", patient_name)
-        except RuntimeWarning:
-            print("Warning extracting peaks from patient:", patient_name)
-        except RuntimeError:
+        except ValueError as error:
             print("Errors extracting peaks from patient:", patient_name)
+            print(error)
+        except ZeroDivisionError as error:
+            print("Errors extracting peaks from patient:", patient_name)
+            print(error)
+        except RuntimeError as error:
+            print("Errors extracting peaks from patient:", patient_name)
+            print(error)
+        except IndexError as error:
+            print("Errors extracting peaks from patient:", patient_name)
+            print(error)
     return matr_data
 
 
