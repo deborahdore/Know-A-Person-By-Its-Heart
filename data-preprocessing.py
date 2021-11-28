@@ -2,8 +2,10 @@ import neurokit2 as nk
 import csv
 import os.path
 import glob
-import numpy as np
+import pandas as pd
 import wfdb
+import numpy as np
+from sklearn.impute import KNNImputer
 
 
 def extract_peak(ecg_signal_file):
@@ -68,9 +70,22 @@ def transform_ecg_data(p, new_file_name):
     np.savez_compressed(new_file_name, **data_raw)
 
 
+def check_dataset(data):
+    # compute k-nearest neighbour
+    df = pd.read_csv(data)
+    read_data = df[['R_PEAK', 'P_PEAK', 'T_PEAK', 'Q_PEAK', 'S_PEAK']]
+    imputer = KNNImputer(n_neighbors=2, weights='uniform')
+    read_data = pd.DataFrame(imputer.fit_transform(read_data),
+                             columns=['R_PEAK', 'P_PEAK', 'T_PEAK', 'Q_PEAK', 'S_PEAK'])
+    new_df = df[['PATIENT_NAME']]
+    new_df = new_df.join(read_data)
+    new_df.to_csv(data, index=False)
+
+
 if __name__ == '__main__':
     dataset = "ptb-diagnostic-ecg-database-1.0.0/"
     data_transformed_file = "data_raw.npz"
     new_features_file = "dataset_processed.csv"
     transform_ecg_data(dataset, data_transformed_file)
     write_to_file(extract_peak(data_transformed_file), new_features_file)
+    check_dataset(new_features_file)
