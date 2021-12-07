@@ -126,9 +126,9 @@ def create_distance_dataset(data_processed, distance_dataset):
 
 if __name__ == '__main__':
     dataset = "ptb-diagnostic-ecg-database-1.0.0/"
-    data_transformed_file = "data_raw.npz"
-    new_features_file = "dataset_processed.csv"
-    distance_dataset_file = "distance_dataset.csv"
+    data_transformed_file = "data/data_raw.npz"
+    new_features_file = "data/dataset_processed.csv"
+    distance_dataset_file = "data/distance_dataset.csv"
 
     transform_ecg_data(dataset, data_transformed_file)
     write_to_file(extract_peak(data_transformed_file), new_features_file)
