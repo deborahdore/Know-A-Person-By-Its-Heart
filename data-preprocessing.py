@@ -1,10 +1,12 @@
-import neurokit2 as nk
 import csv
-import os.path
 import glob
+import os.path
+
+import neurokit2 as nk
+import numpy as np
 import pandas as pd
 import wfdb
-import numpy as np
+from scipy.sparse import issparse
 from sklearn.impute import KNNImputer
 
 
@@ -82,10 +84,54 @@ def check_dataset(data):
     new_df.to_csv(data, index=False)
 
 
+def is_sparse(dataset):
+    df = pd.read_csv(dataset)
+    print("R_PEAK:", issparse(df['R_PEAK']))
+    print("P_PEAK:", issparse(df['P_PEAK']))
+    print("T_PEAK:", issparse(df['T_PEAK']))
+    print("Q_PEAK:", issparse(df['Q_PEAK']))
+    print("S_PEAK:", issparse(df['S_PEAK']))
+
+
+def create_distance_dataset(data_processed, distance_dataset):
+    with open(data_processed, "r") as data_processed_file, open(distance_dataset, "w") as distance_dataset_file:
+        reader = csv.reader(data_processed_file)
+        writer = csv.writer(distance_dataset_file)
+        headers = ['PATIENT_NAME', 'RQ', 'RS', 'RP', 'RT', 'ST', 'PQ', 'PT']
+        writer.writerow(headers)
+        new_line = []
+        for index, row in enumerate(reader):
+            if index == 0:
+                # jump header
+                continue
+            new_line = []
+            new_line.append(row[0])
+
+            r_peak = float(row[1])
+            p_peak = float(row[2])
+            t_peak = float(row[3])
+            q_peak = float(row[4])
+            s_peak = float(row[5])
+
+            new_line.append(abs(r_peak - q_peak))
+            new_line.append(abs(r_peak - s_peak))
+            new_line.append(abs(r_peak - p_peak))
+            new_line.append(abs(r_peak - t_peak))
+            new_line.append(abs(s_peak - t_peak))
+            new_line.append(abs(p_peak - q_peak))
+            new_line.append(abs(p_peak - t_peak))
+
+            writer.writerow(new_line)
+
+
 if __name__ == '__main__':
     dataset = "ptb-diagnostic-ecg-database-1.0.0/"
     data_transformed_file = "data_raw.npz"
     new_features_file = "dataset_processed.csv"
+    distance_dataset_file = "distance_dataset.csv"
+
     transform_ecg_data(dataset, data_transformed_file)
     write_to_file(extract_peak(data_transformed_file), new_features_file)
     check_dataset(new_features_file)
+    is_sparse(new_features_file)
+    create_distance_dataset(new_features_file, distance_dataset_file)
