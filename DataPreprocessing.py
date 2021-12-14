@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import wfdb
 from scipy.sparse import issparse
+from scipy.stats import zscore
 from sklearn.impute import KNNImputer
 
 
@@ -72,7 +73,7 @@ def transform_ecg_data(p, new_file_name):
     np.savez_compressed(new_file_name, **data_raw)
 
 
-def check_dataset(data):
+def compute_k_nearest_neighbour(data):
     # compute k-nearest neighbour
     df = pd.read_csv(data)
     read_data = df[['R_PEAK', 'P_PEAK', 'T_PEAK', 'Q_PEAK', 'S_PEAK']]
@@ -82,6 +83,17 @@ def check_dataset(data):
     new_df = df[['PATIENT_NAME']]
     new_df = new_df.join(read_data)
     new_df.to_csv(data, index=False)
+
+
+def remove_outliers(dataset):
+    # remove outliers
+    df = pd.read_csv(dataset)
+    df_label = df.pop('PATIENT_NAME')
+    z_scores = zscore(df)
+    abs_z_scores = np.abs(z_scores)
+    filtered_entries = (abs_z_scores < 3).all(axis=1)
+    df_removed_outliers = df[filtered_entries].join(df_label)
+    df_removed_outliers.to_csv(dataset, index=False)
 
 
 def is_sparse(dataset):
@@ -99,7 +111,6 @@ def create_distance_dataset(data_processed, distance_dataset):
         writer = csv.writer(distance_dataset_file)
         headers = ['PATIENT_NAME', 'RQ', 'RS', 'RP', 'RT', 'ST', 'PQ', 'PT']
         writer.writerow(headers)
-        new_line = []
         for index, row in enumerate(reader):
             if index == 0:
                 # jump header
@@ -124,14 +135,10 @@ def create_distance_dataset(data_processed, distance_dataset):
             writer.writerow(new_line)
 
 
-if __name__ == '__main__':
-    dataset = "ptb-diagnostic-ecg-database-1.0.0/"
-    data_transformed_file = "data/data_raw.npz"
-    new_features_file = "data/dataset_processed.csv"
-    distance_dataset_file = "data/distance_dataset.csv"
-
+def data_preprocessing(dataset, data_transformed_file, new_features_file, distance_dataset_file):
     transform_ecg_data(dataset, data_transformed_file)
     write_to_file(extract_peak(data_transformed_file), new_features_file)
-    check_dataset(new_features_file)
+    compute_k_nearest_neighbour(new_features_file)
     is_sparse(new_features_file)
     create_distance_dataset(new_features_file, distance_dataset_file)
+    remove_outliers(distance_dataset_file)
