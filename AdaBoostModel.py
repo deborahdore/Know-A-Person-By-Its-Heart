@@ -1,39 +1,42 @@
 import pandas as pd
-from sklearn import metrics
+from numpy import std
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross_val_score
 
 
-def AdaBoost(dataset):
+def classifier(dataset):
+    print("Accuracy evaluation using default hyperparameters")
+
     df = pd.read_csv(dataset)
-
     y = df.pop('PATIENT_NAME')
     x = df
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
+    # default hyperparameters
+    classifier = AdaBoostClassifier()
+    # evaluate the model
+    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    n_scores = cross_val_score(classifier, x, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    # report performance
+    print('Accuracy: %.3f (%.3f) with default hyperparameters' % (mean(n_scores), std(n_scores)))
 
-    abc = AdaBoostClassifier(n_estimators=50, learning_rate=0.05)
-    model = abc.fit(x_train, y_train)
-    y_pred = model.predict(x_test)
-    print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+    print("Now using GridSearch")
+    grid = dict()
+    grid['n_estimators'] = [10, 50, 100, 500]
+    grid['learning_rate'] = [0.0001, 0.001, 0.01, 0.1, 1.0]
+    grid['base_estimator__max_depth'] = [i for i in range(2, 11, 2)]
+    grid['base_estimator__min_samples_leaf'] = [5, 10]
 
+    # evaluation
+    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    grid_search = GridSearchCV(estimator=classifier, param_grid=grid, n_jobs=1, cv=cv, scoring='accuracy')
 
-def GridSearch(dataset):
-    df = pd.read_csv(dataset)
+    result = grid_search.fit(x, y)
 
-    y = df.pop('PATIENT_NAME')
-    x = df
+    print("Best: %f using %s" % (result.best_score_, result.best_params_))
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
-
-    abc = AdaBoostClassifier(base_estimator=DecisionTreeClassifier())
-
-    parameters = {'base_estimator__max_depth': [i for i in range(2, 11, 2)],
-                  'base_estimator__min_samples_leaf': [5, 10],
-                  'n_estimators': [10, 50, 250, 1000],
-                  'learning_rate': [0.01, 0.1]}
-
-    clf = GridSearchCV(abc, parameters, verbose=3, scoring='f1_weighted', n_jobs=-1)
-    clf.fit(x_train, y_train)
-    return clf.best_params_
+    # summarize all scores that were evaluated
+    means = result.cv_results_['mean_test_score']
+    stds = result.cv_results_['std_test_score']
+    params = result.cv_results_['params']
+    for mean, stdev, param in zip(means, stds, params):
+        print("%f (%f) with: %r" % (mean, stdev, param))

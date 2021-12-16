@@ -37,10 +37,13 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
     print("Signal cleaning and peak extraction")
     for patient_name in data.files:
         try:
+            print("Signal cleaning and denoising")
 
             signals, info = nk.ecg_process(data[patient_name], sampling_rate=1000)
             r_peak = info["ECG_R_Peaks"]
             cleaned_ecg = signals["ECG_Clean"]
+
+            print("Peak extraction")
 
             # Delineate the ECG signal and visualizing all peaks of ECG complexes
             _, waves_peak = nk.ecg_delineate(cleaned_ecg, r_peak, sampling_rate=1000, method="cwt", show=False,
@@ -102,17 +105,18 @@ def compute_k_nearest_neighbour(data):
          'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']]
     imputer = KNNImputer(n_neighbors=2, weights='uniform')
     read_data = pd.DataFrame(imputer.fit_transform(read_data),
-                             columns=['ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
-                                      'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
+                             header=['ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
+                                     'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
     new_df = df[['PATIENT_NAME']]
     new_df = new_df.join(read_data)
     new_df.to_csv(data, index=False)
 
 
-def ecg_normalization(dataset):
+def ecg_normalization(dataset, normalized_dataset):
     print("Normalize Dataset using tahn normalization")
     #  tanh normalization
     df = pd.read_csv(dataset)
+    label = df.pop('PATIENT_NAME')
     unnormalizedData = df.to_numpy()
 
     m = np.mean(unnormalizedData, axis=0)
@@ -120,8 +124,10 @@ def ecg_normalization(dataset):
 
     data = 0.5 * (np.tanh(0.01 * ((unnormalizedData - m) / std)) + 1)
 
-    normalized_df = pd.DataFrame(data)
-    normalized_df.to_csv(dataset)
+    normalized_df = pd.concat([label, pd.DataFrame(data)], axis=1)
+    header = ['PATIENT_NAME', 'ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
+              'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']
+    normalized_df.to_csv(normalized_dataset, index=False, header=header)
 
 
 def ecg_feature_selection(dataset, new_dataset):
@@ -129,10 +135,10 @@ def ecg_feature_selection(dataset, new_dataset):
     df = pd.read_csv(dataset)
     y = df.pop('PATIENT_NAME')
     X = df
-    pca = decomposition.PCA(.95)
+    pca = decomposition.PCA(0.99)
     X_pca = pca.fit_transform(X)
-    new_df = pd.concat([y, X_pca], axis=1)
-    new_df.to_csv(new_dataset)
+    new_df = pd.concat([y, pd.DataFrame(X_pca)], axis=1)
+    new_df.to_csv(new_dataset, index=False)
 
     print("Explained variance after pca: how much information has each feature -> ", pca.explained_variance_ratio_)
 
@@ -144,18 +150,17 @@ def remove_outliers(dataset):
     z_scores = zscore(df)
     abs_z_scores = np.abs(z_scores)
     filtered_entries = (abs_z_scores < 3).all(axis=1)
-    df_removed_outliers = df[filtered_entries].join(df_label)
+    df_removed_outliers = pd.concat([df_label, df[filtered_entries]], axis=1)
     df_removed_outliers.to_csv(dataset, index=False)
 
 
-def data_preprocessing(dataset, data_transformed_file, new_features_file, feature_reduction_file):
-    transform_ecg_data(dataset, data_transformed_file)
-    ecg_processing(data_transformed_file, new_features_file)
+def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file):
+    # transform_ecg_data(dataset, data_transformed_file)
+    # ecg_processing(data_transformed_file, new_features_file)
     # remove nan
-    compute_k_nearest_neighbour(new_features_file)
+    # compute_k_nearest_neighbour(new_features_file)
     # normalization
-    # ecg_normalization(new_features_file)
+    ecg_normalization(new_features_file, normalized_dataset)
     # feature selection
-    # ecg_feature_selection(new_features_file, feature_reduction_file)
-
-    # remove_outliers(distance_dataset_file)
+    ecg_feature_selection(normalized_dataset, feature_reduction_file)
+    remove_outliers(feature_reduction_file)

@@ -1,3 +1,4 @@
+from AdaBoostModel import classifier
 from DataPreprocessing import data_preprocessing
 
 if __name__ == '__main__':
@@ -6,9 +7,10 @@ if __name__ == '__main__':
     new_features_file = "data/dataset_processed.csv"
     distance_dataset_file = "data/distance_dataset.csv"
     feature_reduction_file = "data/dataset_feature_reduction.csv"
+    normalized_dataset = "data/normalized_dataset.csv"
 
     print("PREPROCESSING THE DATASET")
-    data_preprocessing(dataset, data_transformed_file, new_features_file, feature_reduction_file)
+    data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file)
 
     print("FIRST MODEL: DECISION TREE WITH ADABOOST")
-    # GridSearch(distance_dataset_file)
+    classifier(feature_reduction_file)
