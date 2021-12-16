@@ -34,15 +34,13 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
 
     data = np.load(ecg_signal_file)
     matr_data = []
+    print("Signal cleaning and peak extraction")
     for patient_name in data.files:
         try:
-            print("Signal cleaning and denoising")
 
             signals, info = nk.ecg_process(data[patient_name], sampling_rate=1000)
             r_peak = info["ECG_R_Peaks"]
             cleaned_ecg = signals["ECG_Clean"]
-
-            print("Peak extraction")
 
             # Delineate the ECG signal and visualizing all peaks of ECG complexes
             _, waves_peak = nk.ecg_delineate(cleaned_ecg, r_peak, sampling_rate=1000, method="cwt", show=False,
@@ -156,8 +154,8 @@ def data_preprocessing(dataset, data_transformed_file, new_features_file, featur
     # remove nan
     compute_k_nearest_neighbour(new_features_file)
     # normalization
-    ecg_normalization(new_features_file)
+    # ecg_normalization(new_features_file)
     # feature selection
-    ecg_feature_selection(new_features_file, feature_reduction_file)
+    # ecg_feature_selection(new_features_file, feature_reduction_file)
 
     # remove_outliers(distance_dataset_file)
