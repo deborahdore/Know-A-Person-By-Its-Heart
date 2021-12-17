@@ -104,7 +104,7 @@ def compute_k_nearest_neighbour(data):
          'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']]
     imputer = KNNImputer(n_neighbors=2, weights='uniform')
     read_data = pd.DataFrame(imputer.fit_transform(read_data),
-                             header=['ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
+                             columns=['ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
                                      'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
     new_df = df[['PATIENT_NAME']]
     new_df = new_df.join(read_data)
