@@ -10,7 +10,7 @@ if __name__ == '__main__':
     normalized_dataset = "data/normalized_dataset.csv"
 
     print("PREPROCESSING THE DATASET")
-    data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file)
+    # data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file)
 
     print("FIRST MODEL: DECISION TREE WITH ADABOOST")
     classifier(feature_reduction_file)

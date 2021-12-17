@@ -14,21 +14,19 @@ def classifier(dataset):
     # default hyperparameters
     classifier = AdaBoostClassifier()
     # evaluate the model
-    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-    n_scores = cross_val_score(classifier, x, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
-    # report performance
-    print('Accuracy: %.3f (%.3f) with default hyperparameters' % (mean(n_scores), std(n_scores)))
+    # cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    # n_scores = cross_val_score(classifier, x, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    # # report performance
+    # print('Accuracy: %.3f (%.3f) with default hyperparameters' % (mean(n_scores), std(n_scores)))
 
     print("Now using GridSearch")
     grid = dict()
     grid['n_estimators'] = [10, 50, 100, 500]
     grid['learning_rate'] = [0.0001, 0.001, 0.01, 0.1, 1.0]
-    grid['base_estimator__max_depth'] = [i for i in range(2, 11, 2)]
-    grid['base_estimator__min_samples_leaf'] = [5, 10]
 
     # evaluation
     cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-    grid_search = GridSearchCV(estimator=classifier, param_grid=grid, n_jobs=1, cv=cv, scoring='accuracy')
+    grid_search = GridSearchCV(estimator=classifier, param_grid=grid, cv=cv, scoring='accuracy')
 
     result = grid_search.fit(x, y)
 
