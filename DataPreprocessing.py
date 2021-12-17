@@ -31,7 +31,6 @@ def transform_ecg_data(p, new_file_name):
 
 def ecg_processing(ecg_signal_file, new_dataset_file):
     print("Processing the dataset..")
-
     data = np.load(ecg_signal_file)
     matr_data = []
     print("Signal cleaning and peak extraction")
@@ -135,12 +134,12 @@ def ecg_feature_selection(dataset, new_dataset):
     df = pd.read_csv(dataset)
     y = df.pop('PATIENT_NAME')
     X = df
-    pca = decomposition.PCA(0.99)
-    X_pca = pca.fit_transform(X)
+    svd = decomposition.TruncatedSVD()
+    X_pca = svd.fit_transform(X)
     new_df = pd.concat([y, pd.DataFrame(X_pca)], axis=1)
     new_df.to_csv(new_dataset, index=False)
 
-    print("Explained variance after pca: how much information has each feature -> ", pca.explained_variance_ratio_)
+    print("how much information has each feature -> ", svd.explained_variance_ratio_)
 
 
 def remove_outliers(dataset):
@@ -155,10 +154,10 @@ def remove_outliers(dataset):
 
 
 def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file):
-    # transform_ecg_data(dataset, data_transformed_file)
-    # ecg_processing(data_transformed_file, new_features_file)
+    transform_ecg_data(dataset, data_transformed_file)
+    ecg_processing(data_transformed_file, new_features_file)
     # remove nan
-    # compute_k_nearest_neighbour(new_features_file)
+    compute_k_nearest_neighbour(new_features_file)
     # normalization
     ecg_normalization(new_features_file, normalized_dataset)
     # feature selection
