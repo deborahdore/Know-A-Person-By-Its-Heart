@@ -1,5 +1,4 @@
 from AdaBoostModel import classifier
-from DataPreprocessing import data_preprocessing
 
 if __name__ == '__main__':
     dataset = "ptb-diagnostic-ecg-database-1.0.0/"

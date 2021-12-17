@@ -1,5 +1,5 @@
 import pandas as pd
-from numpy import std
+import numpy as np
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross_val_score
 
@@ -14,10 +14,10 @@ def classifier(dataset):
     # default hyperparameters
     classifier = AdaBoostClassifier()
     # evaluate the model
-    # cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-    # n_scores = cross_val_score(classifier, x, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
-    # # report performance
-    # print('Accuracy: %.3f (%.3f) with default hyperparameters' % (mean(n_scores), std(n_scores)))
+    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    n_scores = cross_val_score(classifier, x, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    # report performance
+    print('Accuracy: %.3f (%.3f) with default hyperparameters' % (np.mean(n_scores), np.std(n_scores)))
 
     print("Now using GridSearch")
     grid = dict()
