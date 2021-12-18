@@ -100,7 +100,7 @@ def compute_k_nearest_neighbour(data):
                                       'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
     new_df = df[['PATIENT_NAME']]
     new_df = new_df.join(read_data)
-    new_df.to_csv(data, index=True)
+    new_df.to_csv(data, index=True, index_label="id")
 
 
 def feature_extraction(dataset):
@@ -139,11 +139,11 @@ def remove_outliers(dataset):
 
 
 def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset):
-    # transform_ecg_data(dataset, data_transformed_file)
-    # ecg_processing(data_transformed_file, new_features_file)
-    # # remove nan
-    # compute_k_nearest_neighbour(new_features_file)
-    feature_extraction(new_features_file)
+    transform_ecg_data(dataset, data_transformed_file)
+    ecg_processing(data_transformed_file, new_features_file)
+    # remove nan
+    compute_k_nearest_neighbour(new_features_file)
+    # feature_extraction(new_features_file)
     # normalization
     # ecg_normalization(new_features_file, normalized_dataset)
     # remove_outliers(normalized_dataset)
