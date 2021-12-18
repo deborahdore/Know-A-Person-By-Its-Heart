@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross_val_score
 
@@ -7,7 +6,7 @@ from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross
 def classifier(dataset):
     print("Accuracy evaluation using default hyperparameters")
 
-    df = pd.read_csv(dataset)
+    df = pd.read_csv(dataset).sample(frac=0.10)
     y = df.pop('PATIENT_NAME')
     x = df
 

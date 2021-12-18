@@ -103,7 +103,7 @@ def compute_k_nearest_neighbour(data):
     imputer = KNNImputer(n_neighbors=2, weights='uniform')
     read_data = pd.DataFrame(imputer.fit_transform(read_data),
                              columns=['ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
-                                     'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
+                                      'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
     new_df = df[['PATIENT_NAME']]
     new_df = new_df.join(read_data)
     new_df.to_csv(data, index=False)
@@ -151,6 +151,21 @@ def remove_outliers(dataset):
     df_removed_outliers.to_csv(dataset, index=False)
 
 
+def format_correctly(energy_file):
+    transformed = []
+    with open(energy_file, "r") as file:
+        reader = csv.reader(file)
+        for index, row in enumerate(reader):
+            if index == 0:
+                continue
+            transformed.append([row[0], format(float(row[1]), '.10f'), format(float(row[2]), '.10f')])
+
+    with open(energy_file, "w") as file:
+        writer = csv.writer(file)
+        writer.writerow(['PATIENT_NAME', 'R1', 'R2'])
+        writer.writerows(transformed)
+
+
 def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file):
     transform_ecg_data(dataset, data_transformed_file)
     ecg_processing(data_transformed_file, new_features_file)
@@ -161,3 +176,4 @@ def data_preprocessing(dataset, data_transformed_file, new_features_file, normal
     # feature selection
     ecg_feature_selection(normalized_dataset, feature_reduction_file)
     remove_outliers(feature_reduction_file)
+    format_correctly(feature_reduction_file)
