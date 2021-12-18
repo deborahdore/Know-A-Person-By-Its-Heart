@@ -100,7 +100,7 @@ def compute_k_nearest_neighbour(data):
                                       'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets'])
     new_df = df[['PATIENT_NAME']]
     new_df = new_df.join(read_data)
-    new_df.to_csv(data, index=False)
+    new_df.to_csv(data, index=True)
 
 
 def feature_extraction(dataset):
