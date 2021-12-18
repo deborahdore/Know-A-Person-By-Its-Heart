@@ -1,14 +1,13 @@
 import csv
 import glob
-import os.path
 
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
 import wfdb
 from scipy.stats import zscore
-from sklearn import decomposition
 from sklearn.impute import KNNImputer
+from tsfresh import extract_relevant_features
 
 
 def transform_ecg_data(p, new_file_name):
@@ -59,7 +58,7 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
             t_offset_peak = waves_peak['ECG_T_Offsets']
 
             matr_data.append(
-                [patient_name, np.mean(p_onset_peak), np.mean(p_peak), np.mean(p_offset_peak), np.mean(q_peak),
+                [patient_name.split('/')[0], np.mean(p_onset_peak), np.mean(p_peak), np.mean(p_offset_peak), np.mean(q_peak),
                  np.mean(r_onset_peak), np.mean(r_offset_peak), np.mean(s_peak), np.mean(t_onset_peak),
                  np.mean(t_peak), np.mean(t_offset_peak)])
 
@@ -104,6 +103,12 @@ def compute_k_nearest_neighbour(data):
     new_df.to_csv(data, index=False)
 
 
+def feature_extraction(dataset):
+    X = pd.read_csv(dataset)
+    y = X.pop('PATIENT_NAME')
+    features_filtered_direct = extract_relevant_features(X, y, column_id='PATIENT_NAME')
+
+
 def ecg_normalization(dataset, normalized_dataset):
     print("Normalize Dataset using tahn normalization")
     #  tanh normalization
@@ -121,6 +126,7 @@ def ecg_normalization(dataset, normalized_dataset):
               'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']
     normalized_df.to_csv(normalized_dataset, index=False, header=header)
 
+
 def remove_outliers(dataset):
     # remove outliers
     df = pd.read_csv(dataset)
@@ -133,10 +139,11 @@ def remove_outliers(dataset):
 
 
 def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset):
-    transform_ecg_data(dataset, data_transformed_file)
-    ecg_processing(data_transformed_file, new_features_file)
-    # remove nan
-    compute_k_nearest_neighbour(new_features_file)
+    # transform_ecg_data(dataset, data_transformed_file)
+    # ecg_processing(data_transformed_file, new_features_file)
+    # # remove nan
+    # compute_k_nearest_neighbour(new_features_file)
+    feature_extraction(new_features_file)
     # normalization
     # ecg_normalization(new_features_file, normalized_dataset)
     # remove_outliers(normalized_dataset)
