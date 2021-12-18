@@ -150,16 +150,16 @@ def remove_outliers(dataset):
     df_removed_outliers.to_csv(dataset, index=False)
 
 
-def format_correctly(energy_file):
+def format_correctly(dataset):
     transformed = []
-    with open(energy_file, "r") as file:
+    with open(dataset, "r") as file:
         reader = csv.reader(file)
         for index, row in enumerate(reader):
             if index == 0:
                 continue
             transformed.append([row[0], format(float(row[1]), '.10f'), format(float(row[2]), '.10f')])
 
-    with open(energy_file, "w") as file:
+    with open(dataset, "w") as file:
         writer = csv.writer(file)
         writer.writerow(['PATIENT_NAME', 'R1', 'R2'])
         writer.writerows(transformed)
