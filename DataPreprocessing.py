@@ -2,7 +2,6 @@ import csv
 import glob
 import os.path
 
-import matplotlib.pyplot as plt
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
@@ -34,7 +33,6 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
     print("Processing the dataset..")
     data = np.load(ecg_signal_file)
     matr_data = []
-    print("Signal cleaning and peak extraction")
     print("Signal cleaning and denoising and peak extraction")
     for patient_name in data.files:
         try:
@@ -44,8 +42,8 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
             cleaned_ecg = signals["ECG_Clean"]
 
             # Delineate the ECG signal and visualizing all peaks of ECG complexes
-            _, waves_peak = nk.ecg_delineate(cleaned_ecg, r_peak, sampling_rate=1000, method="cwt", show=False,
-                                             show_type='all')
+            signal_cwt, waves_peak = nk.ecg_delineate(cleaned_ecg, r_peak, sampling_rate=1000, method="cwt", show=False,
+                                                      show_type='all')
             # plt.show()
 
             p_peak = waves_peak['ECG_P_Peaks']
@@ -150,38 +148,13 @@ def remove_outliers(dataset):
     df_removed_outliers.to_csv(dataset, index=False)
 
 
-def format_correctly(dataset):
-    transformed = []
-    with open(dataset, "r") as file:
-        reader = csv.reader(file)
-        for index, row in enumerate(reader):
-            if index == 0:
-                continue
-            transformed.append([row[0], format(float(row[1]), '.10f'), format(float(row[2]), '.10f')])
-
-    with open(dataset, "w") as file:
-        writer = csv.writer(file)
-        writer.writerow(['PATIENT_NAME', 'R1', 'R2'])
-        writer.writerows(transformed)
-
-
-def plot_classes_distribution(dataset):
-    df = pd.read_csv(dataset)
-    print(df['PATIENT_NAME'].value_counts())
-    df.hist(column='R1', by='PATIENT_NAME')
-    plt.axis('off')
-    plt.show()
-
-
-def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file):
+def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset):
     transform_ecg_data(dataset, data_transformed_file)
     ecg_processing(data_transformed_file, new_features_file)
     # remove nan
     compute_k_nearest_neighbour(new_features_file)
     # normalization
     ecg_normalization(new_features_file, normalized_dataset)
-    # feature selection
-    ecg_feature_selection(normalized_dataset, feature_reduction_file)
-    remove_outliers(feature_reduction_file)
-    format_correctly(feature_reduction_file)
-    # plot_classes_distribution(feature_reduction_file)
+    remove_outliers(normalized_dataset)
+    # How many templates for each patient
+    print(pd.read_csv(normalized_dataset)['PATIENT_NAME'].value_counts())
