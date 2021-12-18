@@ -1,5 +1,5 @@
-from AdaBoostModel import classifier
 from DataPreprocessing import data_preprocessing
+from LongShortTermMemory import LongShortTermMemory
 
 if __name__ == '__main__':
     dataset = "ptb-diagnostic-ecg-database-1.0.0/"
@@ -12,4 +12,4 @@ if __name__ == '__main__':
     data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset)
 
     print("FIRST MODEL: DECISION TREE WITH ADABOOST")
-    classifier(normalized_dataset)
+    # classifier(normalized_dataset)

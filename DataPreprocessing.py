@@ -78,15 +78,13 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
 
     print("Create new dataset")
 
-    exists = os.path.exists(new_dataset_file)
     header = ['PATIENT_NAME', 'ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
               'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']
-    with open(new_dataset_file, "a") as ecg_samples:
+
+    with open(new_dataset_file, "w") as ecg_samples:
         writer = csv.writer(ecg_samples)
-        if not exists:
-            writer.writerow(header)
-        for row in matr_data:
-            writer.writerow(row)
+        writer.writerow(header)
+        writer.writerows(matr_data)
 
 
 def compute_k_nearest_neighbour(data):
@@ -123,20 +121,6 @@ def ecg_normalization(dataset, normalized_dataset):
               'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']
     normalized_df.to_csv(normalized_dataset, index=False, header=header)
 
-
-def ecg_feature_selection(dataset, new_dataset):
-    print("Feature selection using PCA methodology")
-    df = pd.read_csv(dataset)
-    y = df.pop('PATIENT_NAME')
-    X = df
-    svd = decomposition.TruncatedSVD()
-    X_pca = svd.fit_transform(X)
-    new_df = pd.concat([y, pd.DataFrame(X_pca)], axis=1)
-    new_df.to_csv(new_dataset, index=False)
-
-    print("how much information has each feature -> ", svd.explained_variance_ratio_)
-
-
 def remove_outliers(dataset):
     # remove outliers
     df = pd.read_csv(dataset)
@@ -154,7 +138,7 @@ def data_preprocessing(dataset, data_transformed_file, new_features_file, normal
     # remove nan
     compute_k_nearest_neighbour(new_features_file)
     # normalization
-    ecg_normalization(new_features_file, normalized_dataset)
-    remove_outliers(normalized_dataset)
+    # ecg_normalization(new_features_file, normalized_dataset)
+    # remove_outliers(normalized_dataset)
     # How many templates for each patient
-    print(pd.read_csv(normalized_dataset)['PATIENT_NAME'].value_counts())
+    # print(pd.read_csv(normalized_dataset)['PATIENT_NAME'].value_counts())

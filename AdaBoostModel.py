@@ -1,6 +1,7 @@
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import AdaBoostClassifier
-from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross_val_score
+from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, cross_val_score, train_test_split
 
 
 def classifier(dataset):
@@ -10,11 +11,13 @@ def classifier(dataset):
     y = df.pop('PATIENT_NAME')
     x = df
 
+    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3)
+
     # default hyperparameters
     classifier = AdaBoostClassifier(n_estimators=50, learning_rate=0.05)
     # evaluate the model
     cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
-    n_scores = cross_val_score(classifier, x, y, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    n_scores = cross_val_score(classifier, x_train, y_train, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
     # report performance
     print('Accuracy: %.3f (%.3f) with default hyperparameters' % (np.mean(n_scores), np.std(n_scores)))
 
@@ -27,7 +30,7 @@ def classifier(dataset):
     cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
     grid_search = GridSearchCV(estimator=classifier, param_grid=grid, cv=cv, scoring='accuracy')
 
-    result = grid_search.fit(x, y)
+    result = grid_search.fit(x_train, y_train)
 
     print("Best: %f using %s" % (result.best_score_, result.best_params_))
 
