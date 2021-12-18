@@ -1,4 +1,3 @@
-from AdaBoostModel import classifier
 from DataPreprocessing import data_preprocessing
 
 if __name__ == '__main__':
@@ -13,4 +12,4 @@ if __name__ == '__main__':
     data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file)
 
     print("FIRST MODEL: DECISION TREE WITH ADABOOST")
-    classifier(feature_reduction_file)
+    # classifier(feature_reduction_file)

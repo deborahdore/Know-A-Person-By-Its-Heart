@@ -2,6 +2,7 @@ import csv
 import glob
 import os.path
 
+import matplotlib.pyplot as plt
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
@@ -59,13 +60,11 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
             t_onset_peak = waves_peak['ECG_T_Onsets']
             t_offset_peak = waves_peak['ECG_T_Offsets']
 
-            total_len = min(len(r_peak), len(p_peak), len(t_peak), len(q_peak), len(s_peak), len(p_onset_peak),
-                            len(p_offset_peak), len(r_onset_peak), len(r_offset_peak), len(t_onset_peak),
-                            len(t_offset_peak))
-            for index in range(total_len):
-                matr_data.append([patient_name, p_onset_peak[index], p_peak[index], p_offset_peak[index], q_peak[index],
-                                  r_onset_peak[index], r_offset_peak[index], s_peak[index], t_onset_peak[index],
-                                  t_peak[index], t_offset_peak[index]])
+            matr_data.append(
+                [patient_name, np.mean(p_onset_peak), np.mean(p_peak), np.mean(p_offset_peak), np.mean(q_peak),
+                 np.mean(r_onset_peak), np.mean(r_offset_peak), np.mean(s_peak), np.mean(t_onset_peak),
+                 np.mean(t_peak), np.mean(t_offset_peak)])
+
         except ValueError as error:
             print("Errors extracting peaks from patient:", patient_name)
             print(error)
@@ -166,6 +165,14 @@ def format_correctly(energy_file):
         writer.writerows(transformed)
 
 
+def plot_classes_distribution(dataset):
+    df = pd.read_csv(dataset)
+    print(df['PATIENT_NAME'].value_counts())
+    df.hist(column='R1', by='PATIENT_NAME')
+    plt.axis('off')
+    plt.show()
+
+
 def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset, feature_reduction_file):
     transform_ecg_data(dataset, data_transformed_file)
     ecg_processing(data_transformed_file, new_features_file)
@@ -177,3 +184,4 @@ def data_preprocessing(dataset, data_transformed_file, new_features_file, normal
     ecg_feature_selection(normalized_dataset, feature_reduction_file)
     remove_outliers(feature_reduction_file)
     format_correctly(feature_reduction_file)
+    # plot_classes_distribution(feature_reduction_file)
