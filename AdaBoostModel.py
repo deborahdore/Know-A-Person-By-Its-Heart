@@ -16,7 +16,7 @@ def classifier(dataset):
     # default hyperparameters
     classifier = AdaBoostClassifier(n_estimators=50, learning_rate=0.05)
     # evaluate the model
-    cv = RepeatedStratifiedKFold(n_splits=10, n_repeats=3, random_state=1)
+    cv = RepeatedStratifiedKFold(n_splits=2, n_repeats=3, random_state=1)
     n_scores = cross_val_score(classifier, x_train, y_train, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
     # report performance
     print('Accuracy: %.3f (%.3f) with default hyperparameters' % (np.mean(n_scores), np.std(n_scores)))

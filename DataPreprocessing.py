@@ -1,18 +1,22 @@
 import csv
 import glob
+from collections import Counter
 
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
 import wfdb
+from imblearn.over_sampling import RandomOverSampler
+from matplotlib import pyplot
 from scipy.stats import zscore
 from sklearn.impute import KNNImputer
+from sklearn.inspection import permutation_importance
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.preprocessing import LabelEncoder
 from tsfresh import extract_relevant_features
 
 
 def transform_ecg_data(p, new_file_name):
-    print("Transform ecg dataset")
-
     template = p + "*/*.hea"
     file_list = glob.glob(template)
 
@@ -29,10 +33,8 @@ def transform_ecg_data(p, new_file_name):
 
 
 def ecg_processing(ecg_signal_file, new_dataset_file):
-    print("Processing the dataset..")
     data = np.load(ecg_signal_file)
     matr_data = []
-    print("Signal cleaning and denoising and peak extraction")
     for patient_name in data.files:
         try:
 
@@ -58,7 +60,8 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
             t_offset_peak = waves_peak['ECG_T_Offsets']
 
             matr_data.append(
-                [patient_name.split('/')[0], np.mean(p_onset_peak), np.mean(p_peak), np.mean(p_offset_peak), np.mean(q_peak),
+                [patient_name.split('/')[0], np.mean(p_onset_peak), np.mean(p_peak), np.mean(p_offset_peak),
+                 np.mean(q_peak),
                  np.mean(r_onset_peak), np.mean(r_offset_peak), np.mean(s_peak), np.mean(t_onset_peak),
                  np.mean(t_peak), np.mean(t_offset_peak)])
 
@@ -76,7 +79,6 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
             print(error)
 
     print("Create new dataset")
-
     header = ['PATIENT_NAME', 'ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
               'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']
 
@@ -87,8 +89,6 @@ def ecg_processing(ecg_signal_file, new_dataset_file):
 
 
 def compute_k_nearest_neighbour(data):
-    print("Computing K-Nearest Neighbour to remove nan values")
-
     # compute k-nearest neighbour
     df = pd.read_csv(data)
     read_data = df[
@@ -103,16 +103,44 @@ def compute_k_nearest_neighbour(data):
     new_df.to_csv(data, index=True, index_label="id")
 
 
-def feature_extraction(dataset):
+def feature_extraction(dataset, feature_extraction_csv):
+    X = pd.read_csv(dataset)
+    y = X['PATIENT_NAME']
+    features_filtered_direct = extract_relevant_features(X, y, column_id='id', column_sort='PATIENT_NAME')
+    df = pd.concat([pd.DataFrame(y), features_filtered_direct], axis=1)
+    df.to_csv(feature_extraction_csv, index=False)
+
+
+def feature_importance(dataset, feature_selection_dataset):
+    # the permutation feature importance measures the increase in the prediction error of the model after we
+    # permutated the features'values
     X = pd.read_csv(dataset)
     y = X.pop('PATIENT_NAME')
-    features_filtered_direct = extract_relevant_features(X, y, column_id='PATIENT_NAME')
+    y_encoded = LabelEncoder().fit_transform(y)
+    model = KNeighborsRegressor()
+    model.fit(X, y_encoded)
+    # perform permutation importance
+    results = permutation_importance(model, X, y_encoded, scoring='neg_mean_squared_error')
+    importance = results.importances_mean
+    suggested_features = []
+    for i, v in enumerate(importance):
+        if v > 1:
+            suggested_features.append(i)
+            print('Feature: %0d, Score: %.5f' % (i, v))
+    # plot feature importance
+    pyplot.bar([x > 1 for x in range(len(importance))], importance)
+    pyplot.show()
+    print("Suggested features: ", X.columns[suggested_features])
+
+    new_df = pd.concat([pd.DataFrame(y, columns=['PATIENT_NAME']), X[X.columns[[n for n in suggested_features]]]],
+                       axis=1)
+    new_df.to_csv(feature_selection_dataset, index=False)
 
 
 def ecg_normalization(dataset, normalized_dataset):
-    print("Normalize Dataset using tahn normalization")
     #  tanh normalization
     df = pd.read_csv(dataset)
+    header = df.columns
     label = df.pop('PATIENT_NAME')
     unnormalizedData = df.to_numpy()
 
@@ -122,8 +150,6 @@ def ecg_normalization(dataset, normalized_dataset):
     data = 0.5 * (np.tanh(0.01 * ((unnormalizedData - m) / std)) + 1)
 
     normalized_df = pd.concat([label, pd.DataFrame(data)], axis=1)
-    header = ['PATIENT_NAME', 'ECG_P_Onsets', 'ECG_P_Peaks', 'ECG_P_Offsets', 'ECG_Q_Peaks', 'ECG_R_Onsets',
-              'ECG_R_Offsets', 'ECG_S_Peaks', 'ECG_T_Onsets', 'ECG_T_Peaks', 'ECG_T_Offsets']
     normalized_df.to_csv(normalized_dataset, index=False, header=header)
 
 
@@ -138,14 +164,32 @@ def remove_outliers(dataset):
     df_removed_outliers.to_csv(dataset, index=False)
 
 
-def data_preprocessing(dataset, data_transformed_file, new_features_file, normalized_dataset):
+def balance_dataset(dataset, balanced_dataset):
+    X = pd.read_csv(dataset)
+    y = X.pop('PATIENT_NAME')
+    counter = Counter(y)
+    print("Imbalanced Classes:", counter)
+    over = RandomOverSampler()
+    X_over, y_over = over.fit_resample(X, y)
+    counter = Counter(y_over)
+    print("Balanced Classes:", counter)
+    df = pd.concat([y_over, X_over], axis=1)
+    df.to_csv(balanced_dataset, index=False)
+
+
+def data_preprocessing(dataset, data_transformed_file, new_features_file, feature_extraction_dataset,
+                       feature_selection_dataset, normalized_dataset, balanced_dataset):
+    print("---------- Extract ECG")
     transform_ecg_data(dataset, data_transformed_file)
+    print("---------- Processing the ECG.. filtering, denoising and clearing the signals")
     ecg_processing(data_transformed_file, new_features_file)
-    # remove nan
+    print("---------- Removing nan values from the dataset using K-Nearest-Neighbour")
     compute_k_nearest_neighbour(new_features_file)
-    # feature_extraction(new_features_file)
-    # normalization
-    # ecg_normalization(new_features_file, normalized_dataset)
-    # remove_outliers(normalized_dataset)
-    # How many templates for each patient
-    # print(pd.read_csv(normalized_dataset)['PATIENT_NAME'].value_counts())
+    print("---------- Extracting relevant features from the dataset")
+    feature_extraction(new_features_file, feature_extraction_dataset)
+    print("---------- Selecting features with high importance between the ones extracted")
+    feature_importance(feature_extraction_dataset, feature_selection_dataset)
+    print("---------- Features normalization using tahn normalization")
+    ecg_normalization(feature_selection_dataset, normalized_dataset)
+    print("---------- RANDOM OVER SAMPLER for balancing dataset")
+    balance_dataset(normalized_dataset, balanced_dataset)
