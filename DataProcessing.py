@@ -2,25 +2,28 @@ import math
 
 import matplotlib.pyplot as plt
 import neurokit2 as nk
+import numpy as np
+import pandas as pd
 import wfdb
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
 from scipy.spatial import distance
+from sklearn.impute import KNNImputer
 
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
 
 
 # Fill nan values with average
-def fill_nan(l):
-    for i in range(len(l)):
-        if math.isnan(l[i]):
-            if i == 0:
-                l[i] = l[i + 1] / 2
-            elif i == len(l) - 1:
-                l[i] = l[i - 1]
-            else:
-                l[i] = int((l[i + 1] + l[i - 1]) / 2)
-    return l[0:-1]
+# def fill_nan(l):
+#     for i in range(len(l)):
+#         if math.isnan(l[i]):
+#             if i == 0:
+#                 l[i] = l[i + 1] / 2
+#             elif i == len(l) - 1:
+#                 l[i] = l[i - 1]
+#             else:
+#                 l[i] = int((l[i + 1] + l[i - 1]) / 2)
+#     return l[0:-1]
 
 
 # Get angle between 3 point
@@ -231,83 +234,135 @@ def get_angle(final_peaks, cleaned_signal):
             RQS_angle, RSQ_angle, RTS_angle]
 
 
+def k_nearest_neighbour(wave):
+    imputer = KNNImputer(n_neighbors=2)
+    waves_without_nan = imputer.fit_transform(np.reshape(wave, (-1, 1)))
+    return waves_without_nan.astype(int).ravel()
+
+
 def main():
-    path = "ptb-diagnostic-ecg-database-1.0.0/patient001/s0010_re"
-    record = wfdb.rdrecord(path, channel_names=['v4'])
+    base_path = "ptb-diagnostic-ecg-database-1.0.0/"
 
-    # wfdb.plot_wfdb(record=record, time_units='seconds', figsize=(50, 10), ecg_grids='all')
-    # plt.show()
+    patient_names = pd.read_fwf("ptb-diagnostic-ecg-database-1.0.0/RECORDS", dtype=str)
 
-    signal = record.p_signal.ravel()
-    denoised_ecg = lfilter(HighPassFilter(), 1, signal)
-    denoised_ecg = lfilter(BandStopFilter(), 1, denoised_ecg)
-    denoised_ecg = lfilter(LowPassFilter(), 1, denoised_ecg)
+    headers = ['PATIENT_NAME',
+               # time
+               'Tx', 'Px', 'Qx', 'Sx', 'PQ_time', 'PT_time', 'QS_time', 'QT_time', 'ST_time', 'PS_time',
+               'PQ_QS_time', 'QT_QS_time',
+               # amplitude
+               'Ty', 'Py', 'Qy', 'Sy', 'PQ_ampl', 'QR_ampl', 'RS_ampl', 'QS_ampl', 'ST_ampl', 'PS_ampl', 'PT_ampl',
+               'QT_ampl', 'ST_QS_ampl', 'RS_QR_ampl', 'PQ_QS_ampl', 'PQ_QT_ampl', 'PQ_PS_ampl', 'PQ_QR_ampl',
+               'PQ_RS_ampl', 'RS_QS_ampl', 'RS_QT_ampl', 'ST_PQ_ampl', 'ST_QT_ampl',
+               # distance
+               'PQ_dist', 'QR_dist', 'RS_dist', 'ST_dist', 'QS_dist', 'PR_dist', 'ST_QS_dist', 'RS_QR_dist',
+               # slope
+               'PQ_slope', 'QR_slope', 'RS_slope', 'ST_slope', 'QS_slope', 'PT_slope', 'PS_slope', 'QT_slope',
+               'PR_slope',
+               # angle
+               'PQR_angle', 'QRS_angle', 'RST_angle', 'RQS_angle', 'RSQ_angle', 'RTS_angle']
 
-    cleaned_signal = SmoothSignal(denoised_ecg)
+    df = pd.DataFrame(columns=headers)
 
-    plt.clf()
+    for i in range(patient_names.size):
+        patient_id = str(patient_names['PATIENTS'][i])
+        path = base_path + patient_id
 
-    # plt.plot(signal, label="RAW ECG")
-    # plt.plot(cleaned_signal, label="Cleaned ECG", color='k')
-    # plt.grid(True)
-    # plt.legend()
-    # plt.show()
+        record = wfdb.rdrecord(path, channel_names=['v4'])
 
-    # only keep best r peaks with prominence = 1
-    r_peak, _ = find_peaks(cleaned_signal, prominence=1, distance=150)
-    signal_dwt, waves_dwt = nk.ecg_delineate(cleaned_signal, rpeaks=r_peak, sampling_rate=1000, method="peak",
-                                             show=False,
-                                             show_type='peaks')
+        # wfdb.plot_wfdb(record=record, time_units='seconds', figsize=(50, 10), ecg_grids='all')
+        # plt.show()
 
-    t_peaks = fill_nan(waves_dwt['ECG_T_Peaks'])
-    p_peaks = fill_nan(waves_dwt['ECG_P_Peaks'])
-    q_peaks = fill_nan(waves_dwt['ECG_Q_Peaks'])
-    s_peaks = fill_nan(waves_dwt['ECG_S_Peaks'])
-    r_peak = fill_nan(list(r_peak))
+        signal = record.p_signal.ravel()
+        denoised_ecg = lfilter(HighPassFilter(), 1, signal)
+        denoised_ecg = lfilter(BandStopFilter(), 1, denoised_ecg)
+        denoised_ecg = lfilter(LowPassFilter(), 1, denoised_ecg)
 
-    Tx = mean(peak_widths(cleaned_signal, t_peaks))
-    Px = mean(peak_widths(cleaned_signal, p_peaks))
-    Qx = mean(peak_widths(cleaned_signal, q_peaks))
-    Sx = mean(peak_widths(cleaned_signal, s_peaks))
+        cleaned_signal = SmoothSignal(denoised_ecg)
 
-    Ty = mean(peak_prominences(cleaned_signal, t_peaks))
-    Py = mean(peak_prominences(cleaned_signal, p_peaks))
-    Qy = mean(peak_prominences(cleaned_signal, q_peaks))
-    Sy = mean(peak_prominences(cleaned_signal, s_peaks))
+        plt.clf()
 
-    # plt.clf()
-    # plt.plot(cleaned_signal)
-    # plt.plot(t_peaks, cleaned_signal[t_peaks], "x", label="t_peaks")
-    # plt.plot(p_peaks, cleaned_signal[p_peaks], "x", label="p_peaks")
-    # plt.plot(r_peak, cleaned_signal[r_peak], "x", label="r_peak")
-    # plt.plot(q_peaks, cleaned_signal[q_peaks], "x", label="q_peaks")
-    # plt.plot(s_peaks, cleaned_signal[s_peaks], "x", label="s_peak")
-    #
-    # plt.legend()
-    # plt.xlim(1500, 5000)
-    # plt.grid(True)
+        # plt.plot(signal, label="RAW ECG")
+        # plt.plot(cleaned_signal, label="Cleaned ECG", color='k')
+        # plt.grid(True)
+        # plt.legend()
+        # plt.show()
 
-    # contiene tutti i picchi in ordine P,Q,R,S,T in ripetizione
-    final_peaks = []
-    final_peaks.extend(p_peaks)
-    final_peaks.extend(t_peaks)
-    final_peaks.extend(q_peaks)
-    final_peaks.extend(r_peak)
-    final_peaks.extend(s_peaks)
-    final_peaks.sort()
+        # only keep best r peaks with prominence = 1
+        r_peak, _ = find_peaks(cleaned_signal, prominence=1, distance=100)
 
-    features_time = [Tx, Px, Qx, Sx]
-    features_time.extend(get_time(final_peaks, cleaned_signal))
-    features_amplitude = [Ty, Py, Qy, Sy]
-    features_amplitude.extend(get_amplitude(final_peaks, cleaned_signal))
-    features_distance = get_distance(final_peaks, cleaned_signal)
-    features_slope = get_slope(final_peaks, cleaned_signal)
-    features_angle = get_angle(final_peaks, cleaned_signal)
+        # discard signals that have too few r peaks detected
+        if len(r_peak) < 25:
+            continue
 
-    print("TIME:", features_time)
-    print("AMPLITUDE:", features_amplitude)
-    print("DISTANCE:", features_distance)
-    print("SLOPE:", features_slope)
-    print("ANGLE:", features_angle)
+        signal_dwt, waves_dwt = nk.ecg_delineate(cleaned_signal, rpeaks=r_peak, sampling_rate=1000, method="dwt",
+                                                 show=False,
+                                                 show_type='peaks')
 
-    # plt.show()
+        t_peaks = k_nearest_neighbour(waves_dwt['ECG_T_Peaks'])
+        p_peaks = k_nearest_neighbour(waves_dwt['ECG_P_Peaks'])
+        q_peaks = k_nearest_neighbour(waves_dwt['ECG_Q_Peaks'])
+        s_peaks = k_nearest_neighbour(waves_dwt['ECG_S_Peaks'])
+        r_peak = k_nearest_neighbour(r_peak)
+
+        Tx = mean(peak_widths(cleaned_signal, t_peaks))
+        Px = mean(peak_widths(cleaned_signal, p_peaks))
+        Qx = mean(peak_widths(cleaned_signal, q_peaks))
+        Sx = mean(peak_widths(cleaned_signal, s_peaks))
+
+        Ty = mean(peak_prominences(cleaned_signal, t_peaks))
+        Py = mean(peak_prominences(cleaned_signal, p_peaks))
+        Qy = mean(peak_prominences(cleaned_signal, q_peaks))
+        Sy = mean(peak_prominences(cleaned_signal, s_peaks))
+
+        # plt.clf()
+        # plt.plot(cleaned_signal)
+        # plt.plot(t_peaks, cleaned_signal[t_peaks], "x", label="t_peaks")
+        # plt.plot(p_peaks, cleaned_signal[p_peaks], "x", label="p_peaks")
+        # plt.plot(r_peak, cleaned_signal[r_peak], "x", label="r_peak")
+        # plt.plot(q_peaks, cleaned_signal[q_peaks], "x", label="q_peaks")
+        # plt.plot(s_peaks, cleaned_signal[s_peaks], "x", label="s_peak")
+        #
+        # plt.legend()
+        # plt.xlim(1500, 5000)
+        # plt.grid(True)
+
+        # contiene tutti i picchi in ordine P,Q,R,S,T in ripetizione
+        final_peaks = []
+        final_peaks.extend(p_peaks)
+        final_peaks.extend(t_peaks)
+        final_peaks.extend(q_peaks)
+        final_peaks.extend(r_peak)
+        final_peaks.extend(s_peaks)
+        final_peaks.sort()
+
+        # continue only if all peaks were extracted
+        if len(final_peaks) % 5 != 0:
+            continue
+
+        features_time = [Tx, Px, Qx, Sx]
+        features_time.extend(get_time(final_peaks, cleaned_signal))
+        features_amplitude = [Ty, Py, Qy, Sy]
+        features_amplitude.extend(get_amplitude(final_peaks, cleaned_signal))
+        features_distance = get_distance(final_peaks, cleaned_signal)
+        features_slope = get_slope(final_peaks, cleaned_signal)
+        features_angle = get_angle(final_peaks, cleaned_signal)
+
+        # print("TIME:", features_time)
+        # print("AMPLITUDE:", features_amplitude)
+        # print("DISTANCE:", features_distance)
+        # print("SLOPE:", features_slope)
+        # print("ANGLE:", features_angle)
+
+        to_file = []
+        to_file.append(patient_id.split()[0])
+        to_file.extend(features_time)
+        to_file.extend(features_amplitude)
+        to_file.extend(features_distance)
+        to_file.extend(features_slope)
+        to_file.extend(features_angle)
+
+        patient_datas = pd.Series(to_file, index=df.columns)
+        df = df.append(patient_datas, ignore_index=True)
+        # plt.show()
+
+    df.to_csv("dataset.csv", index=False)
