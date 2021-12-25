@@ -325,6 +325,7 @@ def main():
         # plt.legend()
         # plt.xlim(1500, 5000)
         # plt.grid(True)
+        # plt.show()
 
         # contiene tutti i picchi in ordine P,Q,R,S,T in ripetizione
         final_peaks = []
@@ -354,7 +355,7 @@ def main():
         # print("ANGLE:", features_angle)
 
         to_file = []
-        to_file.append(patient_id.split()[0])
+        to_file.append(patient_id.split("/")[0])
         to_file.extend(features_time)
         to_file.extend(features_amplitude)
         to_file.extend(features_distance)
