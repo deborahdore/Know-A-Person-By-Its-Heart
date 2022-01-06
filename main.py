@@ -1,4 +1,6 @@
 from DataProcessing import main
 
 if __name__ == '__main__':
-    main()
+    base_path = "ptb-diagnostic-ecg-database-1.0.0/"
+    dataset = "dataset.csv"
+    main(base_path, dataset)

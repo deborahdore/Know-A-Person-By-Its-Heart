@@ -5,25 +5,13 @@ import neurokit2 as nk
 import numpy as np
 import pandas as pd
 import wfdb
+from imblearn.over_sampling import RandomOverSampler
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
 from scipy.spatial import distance
 from sklearn.impute import KNNImputer
 
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
-
-
-# Fill nan values with average
-# def fill_nan(l):
-#     for i in range(len(l)):
-#         if math.isnan(l[i]):
-#             if i == 0:
-#                 l[i] = l[i + 1] / 2
-#             elif i == len(l) - 1:
-#                 l[i] = l[i - 1]
-#             else:
-#                 l[i] = int((l[i + 1] + l[i - 1]) / 2)
-#     return l[0:-1]
 
 
 # Get angle between 3 point
@@ -234,15 +222,13 @@ def get_angle(final_peaks, cleaned_signal):
             RQS_angle, RSQ_angle, RTS_angle]
 
 
-def k_nearest_neighbour(wave):
+def k_nearest_neighbour_on_waves(data):
     imputer = KNNImputer(n_neighbors=2)
-    waves_without_nan = imputer.fit_transform(np.reshape(wave, (-1, 1)))
+    waves_without_nan = imputer.fit_transform(np.reshape(data, (-1, 1)))
     return waves_without_nan.astype(int).ravel()
 
 
-def main():
-    base_path = "ptb-diagnostic-ecg-database-1.0.0/"
-
+def create_dataset(base_path, new_dataset):
     patient_names = pd.read_fwf("ptb-diagnostic-ecg-database-1.0.0/RECORDS", dtype=str)
 
     headers = ['PATIENT_NAME',
@@ -291,18 +277,18 @@ def main():
         r_peak, _ = find_peaks(cleaned_signal, prominence=1, distance=100)
 
         # discard signals that have too few r peaks detected
-        if len(r_peak) < 25:
+        if len(r_peak) < 15:
             continue
 
         signal_dwt, waves_dwt = nk.ecg_delineate(cleaned_signal, rpeaks=r_peak, sampling_rate=1000, method="dwt",
                                                  show=False,
                                                  show_type='peaks')
 
-        t_peaks = k_nearest_neighbour(waves_dwt['ECG_T_Peaks'])
-        p_peaks = k_nearest_neighbour(waves_dwt['ECG_P_Peaks'])
-        q_peaks = k_nearest_neighbour(waves_dwt['ECG_Q_Peaks'])
-        s_peaks = k_nearest_neighbour(waves_dwt['ECG_S_Peaks'])
-        r_peak = k_nearest_neighbour(r_peak)
+        t_peaks = k_nearest_neighbour_on_waves(waves_dwt['ECG_T_Peaks'])
+        p_peaks = k_nearest_neighbour_on_waves(waves_dwt['ECG_P_Peaks'])
+        q_peaks = k_nearest_neighbour_on_waves(waves_dwt['ECG_Q_Peaks'])
+        s_peaks = k_nearest_neighbour_on_waves(waves_dwt['ECG_S_Peaks'])
+        r_peak = k_nearest_neighbour_on_waves(r_peak)
 
         Tx = mean(peak_widths(cleaned_signal, t_peaks))
         Px = mean(peak_widths(cleaned_signal, p_peaks))
@@ -366,4 +352,51 @@ def main():
         df = df.append(patient_datas, ignore_index=True)
         # plt.show()
 
-    df.to_csv("dataset.csv", index=False)
+    df.to_csv(new_dataset, index=False)
+
+
+def plot_classes(dataset):
+    df = pd.read_csv(dataset)
+    print(df['PATIENT_NAME'].value_counts())
+    plt.title("Classes distribution")
+    plt.tick_params(
+        axis='x',  # changes apply to the x-axis
+        which='both',  # both major and minor ticks are affected
+        bottom=False,  # ticks along the bottom edge are off
+        top=False,  # ticks along the top edge are off
+        labelbottom=False)
+    plt.hist(df['PATIENT_NAME'], bins=50)
+    plt.show()
+
+
+def balance_dataset(dataset):
+    df = pd.read_csv(dataset)
+    y = df.pop("PATIENT_NAME")
+    X = df
+
+    imputer = KNNImputer()
+    X = imputer.fit_transform(X)
+
+    oversample = RandomOverSampler(random_state=42)
+    X, y = oversample.fit_resample(X, y)
+
+    # plt.title("Classes distribution")
+    # plt.tick_params(
+    #     axis='x',  # changes apply to the x-axis
+    #     which='both',  # both major and minor ticks are affected
+    #     bottom=False,  # ticks along the bottom edge are off
+    #     top=False,  # ticks along the top edge are off
+    #     labelbottom=False)
+    # plt.hist(y, bins=50)
+    # plt.show()
+
+    new_df = pd.DataFrame(X)
+    new_df.insert(0, "PATIENT_NAME", y)
+    print(new_df['PATIENT_NAME'].value_counts())
+    new_df.to_csv(dataset)
+
+
+def main(base_path, dataset):
+    create_dataset(base_path, dataset)
+    plot_classes(dataset)
+    balance_dataset(dataset)
