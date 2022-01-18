@@ -41,10 +41,9 @@ for i in range(len(labels)) :
         for j in range(firstOccurance, len(labels)) :
             ranks[j] +=1
 
-#print("Ranks:", ranks)
+
 cmcScores = [float(i)/float(len(labels)) for i in ranks]
-#print("CMC:", cmcScores)
-plt.plot(ranks, cmcScores)
+#plt.plot(ranks, cmcScores)
 plt.xlabel('Ranks')
 plt.ylabel('cmcScores')
 plt.show()
