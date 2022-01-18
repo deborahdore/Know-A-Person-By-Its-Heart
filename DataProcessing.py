@@ -9,7 +9,11 @@ from imblearn.over_sampling import RandomOverSampler
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
 from scipy.spatial import distance
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.impute import KNNImputer
+from sklearn.inspection import permutation_importance
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
 
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
 
@@ -366,13 +370,16 @@ def plot_classes(dataset):
         top=False,  # ticks along the top edge are off
         labelbottom=False)
     plt.hist(df['PATIENT_NAME'], bins=50)
-    plt.show()
+    plt.savefig("plot/classes_balancement_before.svg", dpi=1200)
+    plt.clf()
 
 
-def balance_dataset(dataset):
+def balance_dataset(dataset, balanced_dataset):
     df = pd.read_csv(dataset)
     y = df.pop("PATIENT_NAME")
     X = df
+
+    headers = X.columns
 
     imputer = KNNImputer()
     X = imputer.fit_transform(X)
@@ -390,13 +397,50 @@ def balance_dataset(dataset):
     # plt.hist(y, bins=50)
     # plt.show()
 
-    new_df = pd.DataFrame(X)
+    new_df = pd.DataFrame(X, columns=headers)
     new_df.insert(0, "PATIENT_NAME", y)
     print(new_df['PATIENT_NAME'].value_counts())
-    new_df.to_csv(dataset)
+    new_df.to_csv(balanced_dataset, index=False)
 
 
-def main(base_path, dataset):
+def feature_importance_analysis(dataset):
+    # target
+    X = pd.read_csv(dataset)
+    y = X.pop('PATIENT_NAME')
+
+    feature_names = X.columns
+
+    enc = LabelEncoder()
+    y = enc.fit_transform(y)
+
+    # split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle=True, test_size=0.3)
+
+    forest = RandomForestRegressor()
+    forest.fit(X_train, y_train)
+
+    print(f'model score on training data: {forest.score(X_train, y_train)}')
+
+    result = permutation_importance(forest, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2)
+    forest_importances = pd.Series(result.importances_mean, index=feature_names)
+
+    fig, ax = plt.subplots(figsize=(10, 20))
+    forest_importances.plot.barh(yerr=result.importances_std, ax=ax, log=True)
+    ax.set_title("Feature importances using permutation on full model")
+    ax.set_xlabel("Mean accuracy decrease")
+
+    plt.grid(which='both')
+    fig.tight_layout()
+    fig.savefig("plot/feature_importance.svg", dpi=1200)
+    plt.clf()
+
+    # for i, imp in enumerate(result.importances_std):
+    #     if imp < 0.001:
+    #         print(feature_names[i])
+
+
+def main(base_path, dataset, balanced_dataset):
     create_dataset(base_path, dataset)
     plot_classes(dataset)
-    balance_dataset(dataset)
+    balance_dataset(dataset, balanced_dataset)
+    feature_importance_analysis(balanced_dataset)
