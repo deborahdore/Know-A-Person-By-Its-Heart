@@ -371,6 +371,7 @@ def plot_classes(dataset):
         labelbottom=False)
     plt.hist(df['PATIENT_NAME'], bins=50)
     plt.savefig("plot/classes_balancement_before.svg", dpi=1200)
+    plt.tight_layout()
     plt.clf()
 
 

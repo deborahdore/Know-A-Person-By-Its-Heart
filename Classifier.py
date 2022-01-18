@@ -89,6 +89,8 @@ def classifier(dataset, predictions):
     print(clf.best_params_)
     print(clf.score(X_test, y_test))
 
+    joblib.dump(clf, best_model+'.pkl')
+
     y_pred = clf.predict(X_test)
 
     y_pred = enc.inverse_transform(y_pred)
