@@ -403,9 +403,11 @@ def balance_dataset(dataset, balanced_dataset):
     new_df.to_csv(balanced_dataset, index=False)
 
 
-def feature_importance_analysis(dataset):
+def feature_importance_analysis(dataset, analyzed_dataset):
     # target
-    X = pd.read_csv(dataset)
+    df = pd.read_csv(dataset)
+
+    X = df.copy()
     y = X.pop('PATIENT_NAME')
 
     feature_names = X.columns
@@ -434,13 +436,18 @@ def feature_importance_analysis(dataset):
     fig.savefig("plot/feature_importance.svg", dpi=1200)
     plt.clf()
 
-    # for i, imp in enumerate(result.importances_std):
-    #     if imp < 0.001:
-    #         print(feature_names[i])
+    features = []
+
+    for i, imp in enumerate(result.importances_std):
+        if imp < 0.001:
+            features = feature_names[i]
+
+    df.pop(features)
+    df.to_csv(analyzed_dataset, index=False)
 
 
-def main(base_path, dataset, balanced_dataset):
+def data_processing(base_path, dataset, balanced_dataset, analyzed_dataset):
     create_dataset(base_path, dataset)
     plot_classes(dataset)
     balance_dataset(dataset, balanced_dataset)
-    feature_importance_analysis(balanced_dataset)
+    feature_importance_analysis(balanced_dataset, analyzed_dataset)

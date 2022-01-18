@@ -1,33 +1,25 @@
 import joblib
+import numpy as np
 import pandas as pd
 from sklearn import (
-    model_selection,
     metrics,
-    ensemble,
+    svm,
+    tree,
+    ensemble, neural_network,
 )
-from sklearn.model_selection import train_test_split, KFold
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-X_train = []
-y_train = []
-X_test = []
-y_test = []
 
-
-def work(name, model):
+def work(name, model, X_train, y_train, X_test, y_test):
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
     score = model.score(X_test, y_test)
-    report = metrics.classification_report(y_test, y_pred, zero_division=0)
-    cm = metrics.confusion_matrix(y_test, y_pred)
-
-    kf = KFold(n_splits=3)
-    cv = model_selection.cross_val_score(model, X_test, y_test, n_jobs=2, cv=kf)
-
-    return name, score, report, cm, cv
+    report = pd.DataFrame(metrics.classification_report(y_test, y_pred, zero_division=0, output_dict=True)).T
+    return name, score, report
 
 
-def main(dataset):
+def classifier(dataset, predictions):
     X = pd.read_csv(dataset)
 
     # encode categorical value
@@ -37,46 +29,72 @@ def main(dataset):
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
 
-    global X_train
-    global X_test
-    global y_train
-    global y_test
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle=True, random_state=42)
 
     models = {
-        # 'svm': svm.SVC(),
-        # 'dtree': tree.DecisionTreeClassifier(),
-        # 'randforest': ensemble.RandomForestClassifier(),
-        # 'mlpn': neural_network.MLPClassifier(),
-        # 'adaboost': ensemble.AdaBoostClassifier(),
+        'svm': svm.SVC(),
+        'dtree': tree.DecisionTreeClassifier(),
+        'mlpn': neural_network.MLPClassifier(),
+        'randforest': ensemble.RandomForestClassifier(),
+        'adaboost': ensemble.AdaBoostClassifier(),
         'gradient': ensemble.GradientBoostingClassifier()
     }
 
     res = joblib.Parallel(n_jobs=len(models), verbose=2)(
-        joblib.delayed(work)(name, model) for name, model in models.items()
+        joblib.delayed(work)(name, model, X_train, y_train, X_test, y_test) for name, model in models.items()
     )
-    print(res)
-    #
-    # parameters = {
-    #     "loss": ["deviance"],
-    #     "learning_rate": [0.01, 0.025, 0.05, 0.075, 0.1, 0.15, 0.2],
-    #     "min_samples_split": np.linspace(0.1, 0.5, 12),
-    #     "min_samples_leaf": np.linspace(0.1, 0.5, 12),
-    #     "max_depth": [3, 5, 8],
-    #     "max_features": ["log2", "sqrt"],
-    #     "criterion": ["friedman_mse", "mae"],
-    #     "subsample": [0.5, 0.618, 0.8, 0.85, 0.9, 0.95, 1.0],
-    #     "n_estimators": [10]
-    # }
-    #
-    # clf = GridSearchCV(GradientBoostingClassifier(), parameters, cv=5, n_jobs=-1)
-    #
-    # clf.fit(X_train, y_train)
-    # print(clf.score(X_train, y_train))
-    # print(clf.best_params_)
-    # print(clf.score(X_test, y_test))
 
+    best_model = ""
+    max_score = -1.0
 
-if __name__ == '__main__':
-    main("balanced_dataset.csv")
+    for i in range(len(models)):
+        print("Model name: ", res[i][0])
+        print("Score", res[i][1])
+        print("Report")
+        print(res[i][2])
+
+        if float(res[i][1]) > max_score:
+            best_model = res[i][0]
+            max_score = res[i][1]
+
+    print("The best model is:", best_model, "with score", max_score)
+
+    model = models.get(best_model)
+
+    # Number of trees in random forest
+    n_estimators = [int(x) for x in np.linspace(start=200, stop=2000, num=10)]
+    # Number of features to consider at every split
+    max_features = ['auto', 'sqrt']
+    # Maximum number of levels in tree
+    max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
+    max_depth.append(None)
+    # Minimum number of samples required to split a node
+    min_samples_split = [2, 5, 10]
+    # Minimum number of samples required at each leaf node
+    min_samples_leaf = [1, 2, 4]
+    # Method of selecting samples for training each tree
+    bootstrap = [True, False]
+    # Create the random grid
+    parameters = {'n_estimators': n_estimators,
+                  'max_features': max_features,
+                  'max_depth': max_depth,
+                  'min_samples_split': min_samples_split,
+                  'min_samples_leaf': min_samples_leaf,
+                  'bootstrap': bootstrap}
+
+    clf = GridSearchCV(model, parameters, cv=5, n_jobs=-1, verbose=2)
+
+    clf.fit(X_train, y_train)
+    print(clf.score(X_train, y_train))
+    print(clf.best_params_)
+    print(clf.score(X_test, y_test))
+
+    y_pred = clf.predict(X_test)
+
+    y_pred = enc.inverse_transform(y_pred)
+    y_test = enc.inverse_transform(y_test)
+
+    new_df = pd.DataFrame(y_test, columns=['REAL'])
+    new_df.insert(0, "PREDICTED", y_pred)
+
+    new_df.to_csv(predictions, index=False)
