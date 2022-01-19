@@ -354,7 +354,6 @@ def create_dataset(base_path, new_dataset):
 
         patient_datas = pd.Series(to_file, index=df.columns)
         df = df.append(patient_datas, ignore_index=True)
-        # plt.show()
 
     df.to_csv(new_dataset, index=False)
 
