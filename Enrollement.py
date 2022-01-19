@@ -1,14 +1,18 @@
+import os
 from pathlib import Path
 
 import neurokit2 as nk
+import pandas as pd
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
 
-from DataProcessing import k_nearest_neighbour_on_waves, get_time, get_amplitude, get_distance, get_slope, get_angle
+from Classifier import classifier
+from DataProcessing import k_nearest_neighbour_on_waves, get_time, get_amplitude, get_distance, get_slope, get_angle, \
+    balance_dataset, feature_importance_analysis
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
 
 
-def enrollement(filename):
+def enrollment(filename, dataset):
     enroll_file = open(filename, "r")
     patient_name = ""
     signal_list = []
@@ -95,13 +99,20 @@ def enrollement(filename):
     to_file.extend(features_slope)
     to_file.extend(features_angle)
 
-    # df = pd.read_csv("dataset.csv")
+    df = pd.read_csv(dataset)
 
-    # patient_datas = pd.Series(to_file, index=df.columns)
-    #
-    # df = df.append(patient_datas, ignore_index=True)
+    patient_datas = pd.Series(to_file, index=df.columns)
+
+    df = df.append(patient_datas, ignore_index=True)
+
+    df.to_csv(dataset, index=False)
 
 
-if __name__ == '__main__':
+def start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions):
     for p in Path('./enrollements/').glob('*.csv'):
-        enrollement("enrollements/" + p.name)
+        enrollment("enrollements/" + p.name, dataset)
+        os.remove("enrollements/" + p.name)
+
+    balance_dataset(dataset, balanced_dataset)
+    feature_importance_analysis(balanced_dataset, analyzed_dataset)
+    classifier(analyzed_dataset, predictions)
