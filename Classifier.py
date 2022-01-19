@@ -7,7 +7,7 @@ from sklearn import (
     tree,
     ensemble, neural_network,
 )
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 
@@ -82,14 +82,15 @@ def classifier(dataset, predictions):
                   'min_samples_leaf': min_samples_leaf,
                   'bootstrap': bootstrap}
 
-    clf = GridSearchCV(model, parameters, cv=5, n_jobs=-1, verbose=2)
+    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=100, cv=3, verbose=2,
+                             random_state=42, n_jobs=-1)
 
     clf.fit(X_train, y_train)
     print(clf.score(X_train, y_train))
     print(clf.best_params_)
     print(clf.score(X_test, y_test))
 
-    joblib.dump(clf, best_model+'.pkl')
+    # joblib.dump(clf, best_model + '.pkl')
 
     y_pred = clf.predict(X_test)
 
