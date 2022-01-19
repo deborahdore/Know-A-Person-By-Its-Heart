@@ -82,7 +82,7 @@ def classifier(dataset, predictions):
                   'min_samples_leaf': min_samples_leaf,
                   'bootstrap': bootstrap}
 
-    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=100, cv=3, verbose=2,
+    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=500, cv=3, verbose=2,
                              random_state=42, n_jobs=-1)
 
     clf.fit(X_train, y_train)
@@ -90,7 +90,7 @@ def classifier(dataset, predictions):
     print(clf.best_params_)
     print(clf.score(X_test, y_test))
 
-    # joblib.dump(clf, best_model + '.pkl')
+    joblib.dump(clf, best_model + '.pkl')
 
     y_pred = clf.predict(X_test)
 
@@ -101,3 +101,6 @@ def classifier(dataset, predictions):
     new_df.insert(0, "PREDICTED", y_pred)
 
     new_df.to_csv(predictions, index=False)
+
+    # {'n_estimators': 200, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 'auto', 'max_depth': 50,
+    #  'bootstrap': True}

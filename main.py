@@ -7,5 +7,5 @@ if __name__ == '__main__':
     balanced_dataset = "balanced_dataset.csv"
     analyzed_dataset = "analyzed_dataset.csv"
     predictions = "predictions_dataset.csv"
-    data_processing(base_path, dataset, balanced_dataset, analyzed_dataset)
+    # data_processing(base_path, dataset, balanced_dataset, analyzed_dataset)
     classifier(analyzed_dataset, predictions)
