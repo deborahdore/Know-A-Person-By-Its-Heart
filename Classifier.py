@@ -100,7 +100,7 @@ def classifier(dataset, predictions):
                   'min_samples_leaf': min_samples_leaf,
                   'bootstrap': bootstrap}
 
-    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=50, cv=3, verbose=2,
+    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=100, cv=3, verbose=2,
                              random_state=42, n_jobs=-1)
 
     clf.fit(X_train, y_train)

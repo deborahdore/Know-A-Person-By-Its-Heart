@@ -1,3 +1,4 @@
+from Classifier import classifier
 from DataProcessing import data_processing
 from Enrollement import start_enrollment
 
@@ -9,5 +10,5 @@ if __name__ == '__main__':
     predictions = "datasets/predictions_dataset.csv"
     data_processing(base_path, dataset, balanced_dataset, analyzed_dataset)
 
-    # classifier(analyzed_dataset, predictions)
-    start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions)
+    classifier(analyzed_dataset, predictions)
+    # start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions)
