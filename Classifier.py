@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import joblib
 import numpy as np
 import pandas as pd
@@ -13,22 +11,6 @@ from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
 
-def predict():
-    best_models = [n.name for n in Path('.').glob('*.joblib')]
-
-    if len(best_models) == 0:
-        print("No model found!")
-        return
-
-    if len(best_models) > 1:
-        print("Too many models found!")
-        return
-
-    best_model = best_models[0]
-    model = joblib.load(best_model)
-    # TODO
-
-
 def work(name, model, X_train, y_train, X_test, y_test):
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
@@ -37,12 +19,13 @@ def work(name, model, X_train, y_train, X_test, y_test):
     return name, score, report
 
 
-def classifier(dataset, predictions):
+def train_classifier(dataset, predictions):
     X = pd.read_csv(dataset)
 
     # encode categorical value
     enc = LabelEncoder()
     y = enc.fit_transform(X.pop('PATIENT_NAME'))
+    np.save('classes.npy', enc.classes_)
 
     scaler = MinMaxScaler()
     X = scaler.fit_transform(X)
@@ -100,7 +83,8 @@ def classifier(dataset, predictions):
                   'min_samples_leaf': min_samples_leaf,
                   'bootstrap': bootstrap}
 
-    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=100, cv=3, verbose=2,
+    #  TODO iter num
+    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=10, cv=3, verbose=2,
                              random_state=42, n_jobs=-1)
 
     clf.fit(X_train, y_train)
@@ -119,6 +103,3 @@ def classifier(dataset, predictions):
     new_df.insert(0, "PREDICTED", y_pred)
 
     new_df.to_csv(predictions, index=False)
-
-    # {'n_estimators': 200, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 'auto', 'max_depth': 50,
-    #  'bootstrap': True}

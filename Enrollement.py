@@ -1,18 +1,85 @@
+import csv
 import os
 from pathlib import Path
 
+import joblib
 import neurokit2 as nk
+import numpy as np
 import pandas as pd
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
-from Classifier import classifier
+from Classifier import train_classifier
 from DataProcessing import k_nearest_neighbour_on_waves, get_time, get_amplitude, get_distance, get_slope, get_angle, \
-    balance_dataset, feature_importance_analysis
+    analyze_dataset
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
 
 
-def enrollment(filename, dataset):
+def predict_class():
+    best_models = [n.name for n in Path('.').glob('*.joblib')]
+
+    if len(best_models) == 0:
+        print("No model found!")
+        return
+
+    if len(best_models) > 1:
+        print("Too many models found!")
+        return
+
+    best_model = best_models[0]
+    model = joblib.load(best_model)
+
+    process_new_data()
+
+    data_to_predict = pd.read_csv('classify/to_predict.csv')
+
+    y = data_to_predict.pop('PATIENT_NAME')
+    X = data_to_predict.copy()
+
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(X)
+
+    enc = LabelEncoder()
+    enc.classes_ = np.load('classes.npy', allow_pickle=True)
+
+    y_pred = model.predict(X)
+    y_pred = enc.inverse_transform(y_pred)
+
+    for y_predicted, y_true in y_pred, y:
+        if y_predicted == y_true:
+            print("CORRECTLY RECOGNIZED:", y_predicted)
+        else:
+            print("NOT RECOGNIZED:", "PREDICTED", y_predicted, "INSTEAD OF", y_true)
+
+
+def process_new_data():
+    old_headers = pd.read_csv('datasets/dataset.csv', nrows=0).columns.tolist()
+    headers = pd.read_csv('datasets/analyzed_dataset.csv', nrows=0).columns.tolist()
+    signal_to_append = []
+    for file in Path("./classify/to_be_processed/").glob('*.csv'):
+        patient_datas = pd.Series(signal_processing("classify/to_be_processed/" + file.name), index=old_headers)
+        signal_to_append.append(patient_datas[headers].tolist())
+        os.remove("classify/to_be_processed/" + file.name)
+    with open('classify/to_predict.csv', 'a') as file:
+        writer = csv.writer(file)
+        if os.stat('classify/to_predict.csv').st_size == 0:
+            writer.writerow(headers)
+        writer.writerows(signal_to_append)
+
+
+# wrapper so that the processing can be used also for predictions
+def wr_process_processing(filename, dataset):
+    df = pd.read_csv(dataset)
+    signal_processed = signal_processing(filename)
+    if len(signal_processed) == 0:
+        return
+    patient_datas = pd.Series(signal_processed, index=df.columns)
+    df = df.append(patient_datas, ignore_index=True)
+    df.to_csv(dataset, index=False)
+
+
+def signal_processing(filename):
     enroll_file = open(filename, "r")
     patient_name = ""
     signal_list = []
@@ -29,19 +96,8 @@ def enrollment(filename, dataset):
 
     cleaned_signal = SmoothSignal(denoised_ecg)
 
-    # fig, ax = plt.subplots()
-    # ax.plot(signal[3000:5000], label="Original Signal")
-    # ax.plot(cleaned_signal[5000:7000], label="Cleaned Signal")
-    # fig.legend()
-    # plt.show()
-
     # only keep best r peaks with prominence = 1
     r_peak, _ = find_peaks(cleaned_signal, prominence=0.25, distance=100)
-
-    # plt.plot(cleaned_signal)
-    # plt.plot(r_peak, cleaned_signal[r_peak], "x")
-    # plt.xlim(2000, 6000)
-    # plt.show()
 
     # discard signals that have too few r peaks detected
     if len(r_peak) < 15:
@@ -58,6 +114,10 @@ def enrollment(filename, dataset):
     q_peaks = k_nearest_neighbour_on_waves(waves_dwt['ECG_Q_Peaks'])
     s_peaks = k_nearest_neighbour_on_waves(waves_dwt['ECG_S_Peaks'])
     r_peak = k_nearest_neighbour_on_waves(r_peak)
+
+    if len(t_peaks) == 0 or len(p_peaks) == 0 or len(q_peaks) == 0 or len(s_peaks) == 0 or len(r_peak) == 0:
+        print("Signal not strong enough")
+        return []
 
     Tx = mean(peak_widths(cleaned_signal, t_peaks))
     Px = mean(peak_widths(cleaned_signal, p_peaks))
@@ -99,20 +159,14 @@ def enrollment(filename, dataset):
     to_file.extend(features_slope)
     to_file.extend(features_angle)
 
-    df = pd.read_csv(dataset)
-
-    patient_datas = pd.Series(to_file, index=df.columns)
-
-    df = df.append(patient_datas, ignore_index=True)
-
-    df.to_csv(dataset, index=False)
+    enroll_file.close()
+    return to_file
 
 
 def start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions):
     for p in Path('./enrollements/').glob('*.csv'):
-        enrollment("enrollements/" + p.name, dataset)
+        wr_process_processing("enrollements/" + p.name, dataset)
         os.remove("enrollements/" + p.name)
 
-    balance_dataset(dataset, balanced_dataset)
-    feature_importance_analysis(balanced_dataset, analyzed_dataset)
-    classifier(analyzed_dataset, predictions)
+    analyze_dataset(analyzed_dataset, balanced_dataset, dataset)
+    train_classifier(analyzed_dataset, predictions)

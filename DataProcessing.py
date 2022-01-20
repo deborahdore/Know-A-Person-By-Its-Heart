@@ -446,8 +446,12 @@ def feature_importance_analysis(dataset, analyzed_dataset):
     df.to_csv(analyzed_dataset, index=False)
 
 
+def analyze_dataset(analyzed_dataset, balanced_dataset, dataset):
+    balance_dataset(dataset, balanced_dataset)
+    feature_importance_analysis(balanced_dataset, analyzed_dataset)
+
+
 def data_processing(base_path, dataset, balanced_dataset, analyzed_dataset):
     create_dataset(base_path, dataset)
     plot_classes(dataset)
-    balance_dataset(dataset, balanced_dataset)
-    feature_importance_analysis(balanced_dataset, analyzed_dataset)
+    analyze_dataset(analyzed_dataset, balanced_dataset, dataset)
