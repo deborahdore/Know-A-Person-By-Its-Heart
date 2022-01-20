@@ -1,48 +1,97 @@
-import matplotlib.pyplot as plt
-import numpy as np
 from sklearn import metrics
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import label_binarize
 
-# True and scores
-# true = y_test
-# scores = y_pred
+def preproc(predictions):
+    predictions = "predictions-2.csv"
+    x = pd.read_csv(predictions)
+    real = x.REAL
+    pred = x.PREDICTED
+    scores = x.SCORES
+    for i in range(len(scores)):
+        scores[i]=scores[i][1:-1]
+        scores[i]=scores[i].split()
+        for j in range(len(scores[i])):
+            scores[i][j]=float(scores[i][j])
+    y_test_bin = label_binarize(real, classes=np.unique(real))
+    n_classes = y_test_bin.shape[1]
 
-# True and scores
-true = np.array([1, 1, 2, 2])
-scores = np.array([0.1, 0.4, 0.35, 0.8])
+    return y_test_bin, np.array(list(scores)), n_classes
 
-# ROC: False positive rate, true positive rate
-fpr_roc, tpr_roc, thresholds_roc = metrics.roc_curve(true, scores, pos_label=2)
-# plt.plot(fpr_roc, tpr_roc)
-plt.xlabel('False positive rate')
-plt.ylabel('True positive rate')
-plt.show()
+def ROC_evaluation(predictions):
+    true, scores, n_classes = preproc(predictions)
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+    for i in range(n_classes):
+        fpr[i], tpr[i], _ = metrics.roc_curve(true[:, i], scores[:, i])
+        plt.plot(fpr[i], tpr[i], color='darkorange', lw=2)
+        print('AUC for Class {}: {}'.format(i + 1, metrics.auc(fpr[i], tpr[i])))
 
-# DET: False positive rate, false negative rate
-fpr_det, fnr_det, thresholds_det = metrics.det_curve(true, scores, pos_label=2)
-# plt.plot(fpr_det, fnr_det)
-plt.xlabel('False positive rate')
-plt.ylabel('False negative rate')
-plt.show()
+    all_fpr = np.unique(np.concatenate([fpr[i] for i in range(n_classes)]))
 
-# ROC: Equal error rate
-fnr = 1 - tpr_roc
-eer_threshold = thresholds_roc[np.nanargmin(np.absolute((fnr - fpr_roc)))]
-EER1 = fpr_roc[np.nanargmin(np.absolute((fnr - fpr_roc)))]
-EER2 = fnr[np.nanargmin(np.absolute((fnr - fpr_roc)))]
+    # Then interpolate all ROC curves at this points
+    mean_tpr = np.zeros_like(all_fpr)
+    for i in range(n_classes):
+        mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
 
-# CMC
-predictions = np.random.randint(10, size=(100, 20))
-labels = np.random.randint(10, size=100)
+    mean_tpr /= n_classes
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = metrics.auc(fpr["macro"], tpr["macro"])
+    plt.plot(
+        fpr["macro"],
+        tpr["macro"],
+        label="macro-average ROC curve (area = {0:0.2f})".format(roc_auc["macro"]),
+        color="navy",
+        linestyle=":",
+        linewidth=4,
+    )
+    plt.plot([0, 1], [0, 1], "k--", lw=2)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.title("Some extension of Receiver operating characteristic to multiclass")
+    plt.legend(loc="lower right")
+    plt.savefig("plot/ROC_curve", dpi=1200)
 
-ranks = np.zeros(len(labels))
-for i in range(len(labels)):
-    if labels[i] in predictions[i]:
-        firstOccurance = np.argmax(predictions[i] == labels[i])
-        for j in range(firstOccurance, len(labels)):
-            ranks[j] += 1
+def DET_evaluation(predictions):
+    true, scores, n_classes = preproc(predictions)
+    fpr = dict()
+    fnr = dict()
+    roc_auc = dict()
+    for i in range(n_classes):
+        fpr[i], fnr[i], _ = metrics.det_curve(true[:, i], scores[:, i])
+        plt.plot(fpr[i], fnr[i], color='darkorange', lw=2)
+        #print('AUC for Class {}: {}'.format(i + 1, metrics.auc(fpr[i], fnr[i])))
 
-cmcScores = [float(i) / float(len(labels)) for i in ranks]
-# plt.plot(ranks, cmcScores)
-plt.xlabel('Ranks')
-plt.ylabel('cmcScores')
-plt.show()
+    plt.plot([0, 1], [0, 1], "k--", lw=2)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("False Negative Rate")
+    plt.title("Some extension of Receiver operating characteristic to multiclass")
+    plt.legend(loc="lower right")
+    plt.savefig("plot/DET_curve", dpi=1200)
+
+"""
+def CMC_evaluation(predictions):
+    x = pd.read_csv(predictions)
+    labels = list(x.REAL)
+    predictions = list(x.PREDICTED)
+    ranks = np.zeros(len(labels))
+    for i in range(len(labels)):
+        if labels[i] in predictions[i]:
+            firstOccurance = np.argmax(predictions[i] == labels[i])
+            for j in range(firstOccurance, len(labels)):
+                ranks[j] += 1
+
+    cmcScores = [float(i) / float(len(labels)) for i in ranks]
+    plt.plot(ranks, cmcScores)
+    plt.xlabel('Ranks')
+    plt.ylabel('cmcScores')
+    plt.show()
+"""
