@@ -1,24 +1,25 @@
-from sklearn import metrics
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn import metrics
 from sklearn.preprocessing import label_binarize
 
+
 def preproc(predictions):
-    predictions = "predictions-2.csv"
     x = pd.read_csv(predictions)
     real = x.REAL
     pred = x.PREDICTED
     scores = x.SCORES
     for i in range(len(scores)):
-        scores[i]=scores[i][1:-1]
-        scores[i]=scores[i].split()
+        scores[i] = scores[i][1:-1]
+        scores[i] = scores[i].split()
         for j in range(len(scores[i])):
-            scores[i][j]=float(scores[i][j])
+            scores[i][j] = float(scores[i][j])
     y_test_bin = label_binarize(real, classes=np.unique(real))
     n_classes = y_test_bin.shape[1]
 
     return y_test_bin, np.array(list(scores)), n_classes
+
 
 def ROC_evaluation(predictions):
     true, scores, n_classes = preproc(predictions)
@@ -56,7 +57,8 @@ def ROC_evaluation(predictions):
     plt.ylabel("True Positive Rate")
     plt.title("Some extension of Receiver operating characteristic to multiclass")
     plt.legend(loc="lower right")
-    plt.savefig("plot/ROC_curve", dpi=1200)
+    plt.savefig("plot/ROC_curve.svg", dpi=1200)
+
 
 def DET_evaluation(predictions):
     true, scores, n_classes = preproc(predictions)
@@ -66,7 +68,7 @@ def DET_evaluation(predictions):
     for i in range(n_classes):
         fpr[i], fnr[i], _ = metrics.det_curve(true[:, i], scores[:, i])
         plt.plot(fpr[i], fnr[i], color='darkorange', lw=2)
-        #print('AUC for Class {}: {}'.format(i + 1, metrics.auc(fpr[i], fnr[i])))
+        # print('AUC for Class {}: {}'.format(i + 1, metrics.auc(fpr[i], fnr[i])))
 
     plt.plot([0, 1], [0, 1], "k--", lw=2)
     plt.xlim([0.0, 1.0])
@@ -75,7 +77,8 @@ def DET_evaluation(predictions):
     plt.ylabel("False Negative Rate")
     plt.title("Some extension of Receiver operating characteristic to multiclass")
     plt.legend(loc="lower right")
-    plt.savefig("plot/DET_curve", dpi=1200)
+    plt.savefig("plot/DET_curve.svg", dpi=1200)
+
 
 """
 def CMC_evaluation(predictions):

@@ -5,7 +5,6 @@ import neurokit2 as nk
 import numpy as np
 import pandas as pd
 import wfdb
-from imblearn.over_sampling import RandomOverSampler
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
 from scipy.spatial import distance
@@ -374,7 +373,7 @@ def plot_classes(dataset):
     plt.clf()
 
 
-def balance_dataset(dataset, balanced_dataset):
+def balance_dataset_and_remove_nan(dataset, balanced_dataset):
     df = pd.read_csv(dataset)
     y = df.pop("PATIENT_NAME")
     X = df
@@ -383,9 +382,6 @@ def balance_dataset(dataset, balanced_dataset):
 
     imputer = KNNImputer()
     X = imputer.fit_transform(X)
-
-    oversample = RandomOverSampler(random_state=42)
-    X, y = oversample.fit_resample(X, y)
 
     # plt.title("Classes distribution")
     # plt.tick_params(
@@ -399,7 +395,15 @@ def balance_dataset(dataset, balanced_dataset):
 
     new_df = pd.DataFrame(X, columns=headers)
     new_df.insert(0, "PATIENT_NAME", y)
+
+    value_counts = new_df['PATIENT_NAME'].value_counts()
+
+    # delete classes with less than 3 instances
+    to_remove = value_counts[value_counts < 3].index
+    new_df = new_df[~new_df['PATIENT_NAME'].isin(to_remove)]
+
     print(new_df['PATIENT_NAME'].value_counts())
+
     new_df.to_csv(balanced_dataset, index=False)
 
 
@@ -440,14 +444,15 @@ def feature_importance_analysis(dataset, analyzed_dataset):
 
     for i, imp in enumerate(result.importances_std):
         if imp < 0.001:
-            features = feature_names[i]
+            features.append(feature_names[i])
 
-    df.pop(features)
+    for feat in features:
+        df = df.drop(feat, axis=1)
     df.to_csv(analyzed_dataset, index=False)
 
 
 def analyze_dataset(analyzed_dataset, balanced_dataset, dataset):
-    balance_dataset(dataset, balanced_dataset)
+    balance_dataset_and_remove_nan(dataset, balanced_dataset)
     feature_importance_analysis(balanced_dataset, analyzed_dataset)
 
 

@@ -10,6 +10,8 @@ from sklearn import (
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
+from Evaluation import ROC_evaluation, DET_evaluation
+
 
 def work(name, model, X_train, y_train, X_test, y_test):
     model.fit(X_train, y_train)
@@ -84,7 +86,7 @@ def train_classifier(dataset, predictions):
                   'bootstrap': bootstrap}
 
     #  TODO iter num
-    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=10, cv=3, verbose=2,
+    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=500, cv=3, verbose=2,
                              random_state=42, n_jobs=-1)
 
     clf.fit(X_train, y_train)
@@ -105,3 +107,6 @@ def train_classifier(dataset, predictions):
     new_df.insert(2, "SCORES", list(y_scores))
 
     new_df.to_csv(predictions, index=False)
+
+    ROC_evaluation(predictions)
+    DET_evaluation(predictions)
