@@ -1,5 +1,5 @@
 import math
-
+from imblearn.over_sampling import RandomOverSampler
 import matplotlib.pyplot as plt
 import neurokit2 as nk
 import numpy as np
@@ -383,6 +383,9 @@ def balance_dataset_and_remove_nan(dataset, balanced_dataset):
     imputer = KNNImputer()
     X = imputer.fit_transform(X)
 
+    oversample = RandomOverSampler(random_state=42)
+    X, y = oversample.fit_resample(X, y)
+
     # plt.title("Classes distribution")
     # plt.tick_params(
     #     axis='x',  # changes apply to the x-axis
@@ -395,13 +398,6 @@ def balance_dataset_and_remove_nan(dataset, balanced_dataset):
 
     new_df = pd.DataFrame(X, columns=headers)
     new_df.insert(0, "PATIENT_NAME", y)
-
-    value_counts = new_df['PATIENT_NAME'].value_counts()
-
-    # delete classes with less than 3 instances
-    to_remove = value_counts[value_counts < 3].index
-    new_df = new_df[~new_df['PATIENT_NAME'].isin(to_remove)]
-
     print(new_df['PATIENT_NAME'].value_counts())
 
     new_df.to_csv(balanced_dataset, index=False)
@@ -457,6 +453,6 @@ def analyze_dataset(analyzed_dataset, balanced_dataset, dataset):
 
 
 def data_processing(base_path, dataset, balanced_dataset, analyzed_dataset):
-    create_dataset(base_path, dataset)
-    plot_classes(dataset)
+    # create_dataset(base_path, dataset)
+    # plot_classes(dataset)
     analyze_dataset(analyzed_dataset, balanced_dataset, dataset)
