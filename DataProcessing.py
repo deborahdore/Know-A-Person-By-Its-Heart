@@ -1,10 +1,11 @@
 import math
-from imblearn.over_sampling import RandomOverSampler
+
 import matplotlib.pyplot as plt
 import neurokit2 as nk
 import numpy as np
 import pandas as pd
 import wfdb
+from imblearn.over_sampling import RandomOverSampler
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
 from scipy.spatial import distance
@@ -453,6 +454,6 @@ def analyze_dataset(analyzed_dataset, balanced_dataset, dataset):
 
 
 def data_processing(base_path, dataset, balanced_dataset, analyzed_dataset):
-    # create_dataset(base_path, dataset)
-    # plot_classes(dataset)
+    create_dataset(base_path, dataset)
+    plot_classes(dataset)
     analyze_dataset(analyzed_dataset, balanced_dataset, dataset)

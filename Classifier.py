@@ -7,10 +7,10 @@ from sklearn import (
     tree,
     ensemble, neural_network,
 )
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.model_selection import train_test_split, RandomizedSearchCV, RepeatedStratifiedKFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-from Evaluation import ROC_evaluation, DET_evaluation
+from Evaluation import evaluation
 
 
 def work(name, model, X_train, y_train, X_test, y_test):
@@ -18,7 +18,10 @@ def work(name, model, X_train, y_train, X_test, y_test):
     y_pred = model.predict(X_test)
     score = model.score(X_test, y_test)
     report = pd.DataFrame(metrics.classification_report(y_test, y_pred, zero_division=0, output_dict=True)).T
-    return name, score, report
+    #  cross val to avoid overfitting
+    cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=2, random_state=1)
+    n_scores = cross_val_score(model, X_train, y_train, scoring='accuracy', cv=cv, n_jobs=-1, error_score='raise')
+    return name, score, report, n_scores
 
 
 def train_classifier(dataset, predictions):
@@ -40,7 +43,6 @@ def train_classifier(dataset, predictions):
         'mlpn': neural_network.MLPClassifier(),
         'randforest': ensemble.RandomForestClassifier(),
         'adaboost': ensemble.AdaBoostClassifier(),
-        'gradient': ensemble.GradientBoostingClassifier()
     }
 
     res = joblib.Parallel(n_jobs=len(models), verbose=2)(
@@ -52,41 +54,37 @@ def train_classifier(dataset, predictions):
 
     for i in range(len(models)):
         print("Model name: ", res[i][0])
-        print("Score", res[i][1])
+        print("Score", np.mean(res[i][3]))
         print("Report")
         print(res[i][2])
 
-        if float(res[i][1]) > max_score:
+        if np.mean(res[i][3]) > max_score:
             best_model = res[i][0]
-            max_score = res[i][1]
+            max_score = np.mean(res[i][3])
 
     print("The best model is:", best_model, "with score", max_score)
 
     model = models.get(best_model)
 
-    # Number of trees in random forest
-    n_estimators = [int(x) for x in np.linspace(start=200, stop=2000, num=10)]
-    # Number of features to consider at every split
-    max_features = ['auto', 'sqrt']
-    # Maximum number of levels in tree
-    max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
-    max_depth.append(None)
-    # Minimum number of samples required to split a node
-    min_samples_split = [2, 5, 10]
-    # Minimum number of samples required at each leaf node
-    min_samples_leaf = [1, 2, 4]
-    # Method of selecting samples for training each tree
-    bootstrap = [True, False]
-    # Create the random grid
-    parameters = {'n_estimators': n_estimators,
-                  'max_features': max_features,
-                  'max_depth': max_depth,
-                  'min_samples_split': min_samples_split,
-                  'min_samples_leaf': min_samples_leaf,
-                  'bootstrap': bootstrap}
+    parameters = dict()
+    if best_model == 'dtree':
+        parameters = {'min_samples_leaf': [1, 2, 4],
+                      'criterion': ['gini', 'entropy'],
+                      'max_depth': [2, 4, 6, 8, 10, 12]}
+    elif best_model == 'randforest' or best_model == 'adaboost':
+        parameters = {'n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=10)],
+                      'max_features': ['auto', 'sqrt'],
+                      'max_depth': [int(x) for x in np.linspace(10, 110, num=11)],
+                      'min_samples_split': [2, 5, 10],
+                      'min_samples_leaf': [1, 2, 4],
+                      'bootstrap': [True, False]}
+    elif best_model == 'svm':
+        parameters = {'C': [0.1, 1, 10, 100, 1000],
+                      'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
+                      'kernel': ['linear', 'poly', 'rbf', 'sigmoid']}
 
     #  TODO iter num
-    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=500, cv=3, verbose=2,
+    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=100, cv=3, verbose=2,
                              random_state=42, n_jobs=-1)
 
     clf.fit(X_train, y_train)
@@ -94,7 +92,7 @@ def train_classifier(dataset, predictions):
     print(clf.best_params_)
     print(clf.score(X_test, y_test))
 
-    joblib.dump(clf, best_model + '.joblib', compress=3)
+    joblib.dump(clf, 'model.joblib', compress=3)
 
     y_pred = clf.predict(X_test)
     y_scores = clf.predict_proba(X_test)
@@ -108,5 +106,4 @@ def train_classifier(dataset, predictions):
 
     new_df.to_csv(predictions, index=False)
 
-    ROC_evaluation(predictions)
-    DET_evaluation(predictions)
+    evaluation(predictions)
