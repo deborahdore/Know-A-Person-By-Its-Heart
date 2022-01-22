@@ -28,3 +28,6 @@ if __name__ == '__main__':
     if argument == 'predict':
         #  predict
         predict_class()
+
+    # {'n_estimators': 1400, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 'sqrt', 'max_depth': 80, 'bootstrap': True}
+    # 0.8407643312101911
