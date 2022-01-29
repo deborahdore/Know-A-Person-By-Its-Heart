@@ -1,5 +1,6 @@
 import numpy as np
-from scipy.signal import kaiserord, firwin
+from matplotlib import pyplot as plt
+from scipy.signal import kaiserord, firwin, freqz
 from scipy.signal import savgol_filter
 
 
@@ -26,8 +27,8 @@ def BandStopFilter():
     filter_bs = firwin(num_of_taps, cutoff_hz / nyq_rate, window=('kaiser', beta), pass_zero='bandstop')
 
     # valutare il filtro
-    # w, h = freqz(filter_bs, worN=40000)
-    #
+    w, h = freqz(filter_bs, worN=40000)
+
     # plt.plot((w / np.pi) * nyq_rate, 20 * np.log10(np.abs(h)), linewidth=2)
     #
     # plt.axhline(-ripple_db, linestyle='--', linewidth=1, color='c')
@@ -40,7 +41,8 @@ def BandStopFilter():
     # plt.title('Frequency Response')
     # plt.xlim(40, 80)
     # plt.grid(True)
-    # plt.show()
+    # plt.tight_layout()
+    # plt.savefig("plot/BandStopFilter.svg", dpi=1200)
 
     return filter_bs
 
@@ -85,7 +87,8 @@ def HighPassFilter():
     # plt.ylim(-40, 5)
     # plt.xlim(0, 5)
     # plt.grid(True)
-    # plt.show()
+    # plt.tight_layout()
+    # plt.savefig("plot/HighPassFilter.svg", dpi=1200)
 
     return filter_hf
 
@@ -130,16 +133,19 @@ def LowPassFilter():
     # plt.ylim(-40, 5)
     # plt.xlim(0, 110)
     # plt.grid(True)
-    # plt.show()
+    # plt.tight_layout()
+    # plt.savefig("plot/LowPassFilter.svg", dpi=1200)
 
     return filter_lp
 
 
 def SmoothSignal(signal):
-    smoothed_signal = savgol_filter(signal, 29, 3)  # window size 51, polynomial order 3
-    # plt.plot(signal[:int(len(signal) / 8)], color='k', label="raw signal")
-    # plt.plot(smoothed_signal[:int(len(smoothed_signal) / 8)], label="smoothed signal")
+    smoothed_signal = savgol_filter(signal, 29, 3)  # window size 29, polynomial order 3
+    # plt.plot(signal[:int(len(signal) / 16)], label="raw signal")
+    # plt.plot(smoothed_signal[:int(len(smoothed_signal) / 16)], label="smoothed signal")
     # plt.grid(True)
     # plt.legend()
-    # plt.show()
+    # plt.tight_layout()
+    # plt.savefig("plot/SmoothSignal.svg", dpi=1200)
+
     return smoothed_signal

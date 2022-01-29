@@ -259,23 +259,21 @@ def create_dataset(base_path, new_dataset):
 
         record = wfdb.rdrecord(path, channel_names=['v4'])
 
-        # wfdb.plot_wfdb(record=record, time_units='seconds', figsize=(50, 10), ecg_grids='all')
-        # plt.show()
+        # fig = wfdb.plot_wfdb(record=record, time_units='seconds', figsize=(50, 10), ecg_grids='all', return_fig=True)
+        # fig.savefig("plot/wdbf_record.svg", dpi=1200)
 
         signal = record.p_signal.ravel()
         denoised_ecg = lfilter(HighPassFilter(), 1, signal)
         denoised_ecg = lfilter(BandStopFilter(), 1, denoised_ecg)
         denoised_ecg = lfilter(LowPassFilter(), 1, denoised_ecg)
-
         cleaned_signal = SmoothSignal(denoised_ecg)
 
-        plt.clf()
-
-        # plt.plot(signal, label="RAW ECG")
-        # plt.plot(cleaned_signal, label="Cleaned ECG", color='k')
+        # plt.plot(signal[11000:12000], label="RAW ECG")
+        # plt.plot(cleaned_signal[11000:12000], label="Cleaned ECG")
         # plt.grid(True)
         # plt.legend()
-        # plt.show()
+        # plt.tight_layout()
+        # plt.savefig("plot/SignalCleanedDetailed.svg", dpi=1200)
 
         # only keep best r peaks with prominence = 1
         r_peak, _ = find_peaks(cleaned_signal, prominence=1, distance=100)
@@ -449,8 +447,8 @@ def feature_importance_analysis(dataset, analyzed_dataset):
 
 
 def analyze_dataset(analyzed_dataset, balanced_dataset, dataset):
-    balance_dataset_and_remove_nan(dataset, balanced_dataset)
     feature_importance_analysis(balanced_dataset, analyzed_dataset)
+    balance_dataset_and_remove_nan(dataset, balanced_dataset)
 
 
 def data_processing(base_path, dataset, balanced_dataset, analyzed_dataset):
