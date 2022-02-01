@@ -213,4 +213,4 @@ def start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions):
         os.remove("enrollements/" + p.name)
 
     analyze_dataset(analyzed_dataset, balanced_dataset, dataset)
-    train_new_classifier(analyzed_dataset, predictions)
+    train_new_classifier(balanced_dataset, predictions)
