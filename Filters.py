@@ -1,6 +1,5 @@
 import numpy as np
-from matplotlib import pyplot as plt
-from scipy.signal import kaiserord, firwin, freqz
+from scipy.signal import kaiserord, firwin
 from scipy.signal import savgol_filter
 
 
@@ -27,8 +26,8 @@ def BandStopFilter():
     filter_bs = firwin(num_of_taps, cutoff_hz / nyq_rate, window=('kaiser', beta), pass_zero='bandstop')
 
     # valutare il filtro
-    w, h = freqz(filter_bs, worN=40000)
-
+    # w, h = freqz(filter_bs, worN=40000)
+    #
     # plt.plot((w / np.pi) * nyq_rate, 20 * np.log10(np.abs(h)), linewidth=2)
     #
     # plt.axhline(-ripple_db, linestyle='--', linewidth=1, color='c')
@@ -39,7 +38,9 @@ def BandStopFilter():
     # plt.xlabel('Frequency (Hz)')
     # plt.ylabel('Gain (dB)')
     # plt.title('Frequency Response')
-    # plt.xlim(40, 80)
+    # plt.xlim(10, 100)
+    # plt.ylim(-15, 5)
+    # plt.xscale('log')
     # plt.grid(True)
     # plt.tight_layout()
     # plt.savefig("plot/BandStopFilter.svg", dpi=1200)
@@ -84,8 +85,9 @@ def HighPassFilter():
     # plt.xlabel('Frequency (Hz)')
     # plt.ylabel('Gain (dB)')
     # plt.title('Frequency Response')
-    # plt.ylim(-40, 5)
-    # plt.xlim(0, 5)
+    # plt.ylim(-20, 5)
+    # plt.xlim(0.1, 50)
+    # plt.xscale('log')
     # plt.grid(True)
     # plt.tight_layout()
     # plt.savefig("plot/HighPassFilter.svg", dpi=1200)
@@ -130,8 +132,9 @@ def LowPassFilter():
     # plt.xlabel('Frequency (Hz)')
     # plt.ylabel('Gain (dB)')
     # plt.title('Frequency Response')
-    # plt.ylim(-40, 5)
-    # plt.xlim(0, 110)
+    # plt.ylim(-15, 5)
+    # plt.xlim(10, 200)
+    # plt.xscale('log')
     # plt.grid(True)
     # plt.tight_layout()
     # plt.savefig("plot/LowPassFilter.svg", dpi=1200)

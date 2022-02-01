@@ -8,9 +8,9 @@ import numpy as np
 import pandas as pd
 from numpy import mean
 from scipy.signal import lfilter, find_peaks, peak_widths, peak_prominences
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
-from Classifier import train_classifier
 from DataProcessing import k_nearest_neighbour_on_waves, get_time, get_amplitude, get_distance, get_slope, get_angle, \
     analyze_dataset
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
@@ -163,10 +163,54 @@ def signal_processing(filename):
     return to_file
 
 
+def train_new_classifier(dataset, predictions):
+    best_models = [n.name for n in Path('.').glob('*.joblib')]
+
+    if len(best_models) == 0:
+        print("No model found!")
+        return
+
+    if len(best_models) > 1:
+        print("Too many models found!")
+        return
+
+    best_model = best_models[0]
+    model = joblib.load(best_model)
+
+    X = pd.read_csv(dataset)
+
+    # encode categorical value
+    enc = LabelEncoder()
+    y = enc.fit_transform(X.pop('PATIENT_NAME'))
+    np.save('classes.npy', enc.classes_)
+
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(X)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, shuffle=True, random_state=42)
+
+    model.fit(X_train, y_train)
+    print(model.score(X_train, y_train))
+
+    joblib.dump(model, 'model.joblib', compress=3)
+
+    y_pred = model.predict(X_test)
+    y_scores = model.predict_proba(X_test)
+
+    y_pred = enc.inverse_transform(y_pred)
+    y_test = enc.inverse_transform(y_test)
+
+    new_df = pd.DataFrame(y_test, columns=['REAL'])
+    new_df.insert(0, "PREDICTED", y_pred)
+    new_df.insert(2, "SCORES", list(y_scores))
+
+    new_df.to_csv(predictions, index=False)
+
+
 def start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions):
     for p in Path('./enrollements/').glob('*.csv'):
         wr_process_processing("enrollements/" + p.name, dataset)
         os.remove("enrollements/" + p.name)
 
     analyze_dataset(analyzed_dataset, balanced_dataset, dataset)
-    train_classifier(analyzed_dataset, predictions)
+    train_new_classifier(analyzed_dataset, predictions)

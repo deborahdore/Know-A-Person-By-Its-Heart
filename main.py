@@ -21,7 +21,7 @@ if __name__ == '__main__':
         # process dataset
         data_processing(base_path, dataset, balanced_dataset, analyzed_dataset)
         # train classifier
-        train_classifier(analyzed_dataset, predictions)
+        train_classifier(balanced_dataset, predictions)
     if argument == 'enroll':
         # enroll
         start_enrollment(dataset, balanced_dataset, analyzed_dataset, predictions)

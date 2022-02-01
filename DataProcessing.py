@@ -367,33 +367,22 @@ def plot_classes(dataset):
         top=False,  # ticks along the top edge are off
         labelbottom=False)
     plt.hist(df['PATIENT_NAME'], bins=50)
+    plt.xlabel("patients")
+    plt.ylabel('Number of instances')
     plt.savefig("plot/classes_balancement_before.svg", dpi=1200)
     plt.tight_layout()
     plt.clf()
 
 
-def balance_dataset_and_remove_nan(dataset, balanced_dataset):
+def balance_dataset(dataset, balanced_dataset):
     df = pd.read_csv(dataset)
     y = df.pop("PATIENT_NAME")
     X = df
 
     headers = X.columns
 
-    imputer = KNNImputer()
-    X = imputer.fit_transform(X)
-
     oversample = RandomOverSampler(random_state=42)
     X, y = oversample.fit_resample(X, y)
-
-    # plt.title("Classes distribution")
-    # plt.tick_params(
-    #     axis='x',  # changes apply to the x-axis
-    #     which='both',  # both major and minor ticks are affected
-    #     bottom=False,  # ticks along the bottom edge are off
-    #     top=False,  # ticks along the top edge are off
-    #     labelbottom=False)
-    # plt.hist(y, bins=50)
-    # plt.show()
 
     new_df = pd.DataFrame(X, columns=headers)
     new_df.insert(0, "PATIENT_NAME", y)
@@ -446,9 +435,26 @@ def feature_importance_analysis(dataset, analyzed_dataset):
     df.to_csv(analyzed_dataset, index=False)
 
 
+def remove_nan(dataset):
+    df = pd.read_csv(dataset)
+    y = df.pop("PATIENT_NAME")
+    X = df
+
+    headers = X.columns
+
+    imputer = KNNImputer()
+    X = imputer.fit_transform(X)
+
+    new_df = pd.DataFrame(X, columns=headers)
+    new_df.insert(0, "PATIENT_NAME", y)
+
+    new_df.to_csv(dataset, index=False)
+
+
 def analyze_dataset(analyzed_dataset, balanced_dataset, dataset):
-    feature_importance_analysis(balanced_dataset, analyzed_dataset)
-    balance_dataset_and_remove_nan(dataset, balanced_dataset)
+    remove_nan(dataset)
+    feature_importance_analysis(dataset, analyzed_dataset)
+    balance_dataset(analyzed_dataset, balanced_dataset)
 
 
 def data_processing(base_path, dataset, balanced_dataset, analyzed_dataset):
