@@ -13,11 +13,6 @@ def eval(dataset="datasets/balanced_dataset.csv"):
     X = pd.read_csv(dataset)
 
     # encode categorical value
-    """
-    enc = LabelEncoder()
-    enc.classes_ = np.load('classes.npy', allow_pickle=True)
-    y = enc.fit_transform(X.pop('PATIENT_NAME'))
-    """
     classes = X.pop('PATIENT_NAME')
     y = label_binarize(classes, classes=np.unique(classes))
 
@@ -33,19 +28,20 @@ def eval(dataset="datasets/balanced_dataset.csv"):
     clf.fit(X_train, y_train)
     y_score = clf.predict_proba(X_test)
 
+    ROC_curve(n_classes, y_score, y_test)
+
+
+def ROC_curve(n_classes, y_score, y_test):
     # Compute ROC curve and ROC area for each class
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
     print(y_test)
     for i in range(n_classes):
-        # errore qua
         fpr[i], tpr[i], _ = roc_curve(y_test[:, i], y_score[:, i])
         roc_auc[i] = auc(fpr[i], tpr[i])
-
     # Plot of a ROC curve for a specific class
     for i in range(n_classes):
-        #plt.figure()
         plt.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f)' % roc_auc[i])
     plt.plot([0, 1], [0, 1], 'k--')
     plt.xlim([0.0, 1.0])
@@ -56,7 +52,6 @@ def eval(dataset="datasets/balanced_dataset.csv"):
     plt.legend(loc="lower right")
     plt.show()
 
-'''
+
 if __name__ == '__main__':
     eval()
-'''
