@@ -2,7 +2,8 @@ import sys
 
 from Classifier import train_classifier
 from DataProcessing import data_processing
-from Enrollement import start_enrollment, predict_class
+from Enrollement import start_enrollment
+from Predictions import predict_class
 
 if __name__ == '__main__':
     base_path = "ptb-diagnostic-ecg-database-1.0.0/"

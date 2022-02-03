@@ -7,6 +7,7 @@ from sklearn import (
     tree,
     ensemble, neural_network,
 )
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV, RepeatedStratifiedKFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
@@ -49,48 +50,26 @@ def train_classifier(dataset, predictions):
         joblib.delayed(work)(name, model, X_train, y_train, X_test, y_test) for name, model in models.items()
     )
 
-    best_model = ""
-    max_score = -1.0
-
     for i in range(len(models)):
         print("Model name: ", res[i][0])
         print("Score", np.mean(res[i][3]))
         print("Report")
         print(res[i][2])
 
-        if np.mean(res[i][3]) > max_score:
-            best_model = res[i][0]
-            max_score = np.mean(res[i][3])
+    parameters = {'n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=10)],
+                  'max_features': ['auto', 'sqrt'],
+                  'max_depth': [int(x) for x in np.linspace(10, 110, num=11)],
+                  'min_samples_split': [2, 5, 10],
+                  'min_samples_leaf': [1, 2, 4],
+                  'bootstrap': [True, False]}
 
-    print("The best model is:", best_model, "with score", max_score)
-
-    model = models.get(best_model)
-
-    parameters = dict()
-    if best_model == 'dtree':
-        parameters = {'min_samples_leaf': [1, 2, 4],
-                      'criterion': ['gini', 'entropy'],
-                      'max_depth': [2, 4, 6, 8, 10, 12]}
-    elif best_model == 'randforest' or best_model == 'adaboost':
-        parameters = {'n_estimators': [int(x) for x in np.linspace(start=200, stop=2000, num=10)],
-                      'max_features': ['auto', 'sqrt'],
-                      'max_depth': [int(x) for x in np.linspace(10, 110, num=11)],
-                      'min_samples_split': [2, 5, 10],
-                      'min_samples_leaf': [1, 2, 4],
-                      'bootstrap': [True, False]}
-    elif best_model == 'svm':
-        parameters = {'C': [0.1, 1, 10, 100, 1000],
-                      'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
-                      'kernel': ['linear', 'poly', 'rbf', 'sigmoid']}
-
-    #  TODO iter num
-    clf = RandomizedSearchCV(estimator=model, param_distributions=parameters, n_iter=100, cv=3, verbose=2,
-                             random_state=42, n_jobs=-1)
+    clf = RandomizedSearchCV(estimator=RandomForestClassifier(), param_distributions=parameters, n_iter=100, cv=3,
+                             verbose=2, n_jobs=-1)
 
     clf.fit(X_train, y_train)
-    print(clf.score(X_train, y_train))
-    print(clf.best_params_)
-    print(clf.score(X_test, y_test))
+    print("Score on training dataset", clf.score(X_train, y_train))
+    print("Best params", clf.best_params_)
+    print("Score on testing dataset", clf.score(X_test, y_test))
 
     joblib.dump(clf, 'model.joblib', compress=3)
 

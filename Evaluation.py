@@ -86,7 +86,7 @@ def evaluation(predictions):
     sns.heatmap(confusion_df_sample, annot=False).get_figure().savefig('plot/cnf_matrix_sample.svg',
                                                                        bbox_inches="tight")
     sns.heatmap(confusion_df, annot=False).get_figure().savefig('plot/cnf_matrix.svg', bbox_inches="tight")
-    confusion_df.transpose().to_csv("Confusion Matrix.csv")
+    confusion_df.transpose().to_csv("report/Confusion Matrix.csv")
     plt.clf()
 
     # MICRO
@@ -124,9 +124,11 @@ def evaluation(predictions):
     sns.heatmap(pd.DataFrame(clf_report_sample).iloc[:-1, :].T, annot=False).get_figure().savefig(
         'plot/clf_report_sample.svg', bbox_inches="tight")
     plt.clf()
-    pd.DataFrame(clf_report).transpose().to_csv("Classification Report.csv")
+    pd.DataFrame(clf_report).transpose().to_csv("report/Classification Report.csv")
 
     ROC_evaluation(predictions)
+
+
 
 
 def sample_from_dict(d, sample=10):
