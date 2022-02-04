@@ -76,8 +76,8 @@ def train_classifier(dataset, predictions):
     y_pred = clf.predict(X_test)
     y_scores = clf.predict_proba(X_test)
 
-    y_pred = enc.inverse_transform(y_pred)
-    y_test = enc.inverse_transform(y_test)
+    #y_pred = enc.inverse_transform(y_pred)
+    #y_test = enc.inverse_transform(y_test)
 
     new_df = pd.DataFrame(y_test, columns=['REAL'])
     new_df.insert(0, "PREDICTED", y_pred)
