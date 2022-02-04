@@ -16,8 +16,6 @@ from DataProcessing import k_nearest_neighbour_on_waves, get_time, get_amplitude
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
 
 
-
-
 def process_new_data():
     old_headers = pd.read_csv('datasets/dataset.csv', nrows=0).columns.tolist()
     headers = pd.read_csv('datasets/analyzed_dataset.csv', nrows=0).columns.tolist()

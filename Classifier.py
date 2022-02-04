@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, RandomizedSearchCV, RepeatedStratifiedKFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 
-from Evaluation import evaluation
+from Evaluation_CMC import evaluate
 
 
 def work(name, model, X_train, y_train, X_test, y_test):
@@ -76,8 +76,8 @@ def train_classifier(dataset, predictions):
     y_pred = clf.predict(X_test)
     y_scores = clf.predict_proba(X_test)
 
-    #y_pred = enc.inverse_transform(y_pred)
-    #y_test = enc.inverse_transform(y_test)
+    # y_pred = enc.inverse_transform(y_pred)
+    # y_test = enc.inverse_transform(y_test)
 
     new_df = pd.DataFrame(y_test, columns=['REAL'])
     new_df.insert(0, "PREDICTED", y_pred)
@@ -85,4 +85,4 @@ def train_classifier(dataset, predictions):
 
     new_df.to_csv(predictions, index=False)
 
-    evaluation(predictions)
+    evaluate(predictions)

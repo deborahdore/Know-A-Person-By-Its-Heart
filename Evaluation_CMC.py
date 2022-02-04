@@ -1,0 +1,70 @@
+import pandas as pd
+from matplotlib import pyplot as plt
+
+
+def return_first_one_prob(prob):
+    for index in range(len(prob)):
+        if prob[index] == 1.0:
+            return index
+
+
+def evaluate(dataset):
+    x = pd.read_csv(dataset)
+    real = x.REAL
+
+    scores = x.SCORES
+    for i in range(len(scores)):
+        scores[i] = scores[i][1:-1]
+        scores[i] = scores[i].split()
+        for j in range(len(scores[i])):
+            scores[i][j] = float(scores[i][j])
+
+    for i in range(len(scores)):
+        for j in range(len(scores[0])):
+            scores[i][j] = (scores[i][j], j)
+
+    # RANK
+    ranks = len(scores[0])
+    CMS = dict()
+    c = 0
+    for k in range(ranks):
+        CMS[k + 1] = c
+        for i in range(len(real)):
+            s_scores = sorted(scores[i], reverse=True)
+            if s_scores[k][1] == real[i]:
+                CMS[k + 1] += 1
+                c += 1
+        CMS[k + 1] = CMS[k + 1] / len(real)
+
+    prob = [0] + (list(CMS.values()))
+
+    index_first_prob_one = return_first_one_prob(prob)
+
+    plt.figure()
+    plt.plot(list(range(ranks + 1)), prob)
+    plt.plot(index_first_prob_one, prob[index_first_prob_one], "x",
+             label="Probability = 1.0 at rank " + str(index_first_prob_one))
+    plt.axvline(index_first_prob_one, color='r', linestyle=":", linewidth='1')
+    # plt.xlim([0.0, 5.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('Ranks')
+    plt.ylabel('Prob. of identification')
+    plt.title('Cumulative Match Characteristic')
+    plt.grid()
+    plt.legend(loc="lower right")
+    plt.savefig('plot/CMC/CMC.svg', dpi=1200)
+    plt.clf()
+
+    plt.figure()
+    plt.plot(list(range(5 + 1)), prob[0:6])
+    # plt.xlim([0.0, 5.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('Ranks')
+    plt.ylabel('Prob. of identification')
+    plt.title('Cumulative Match Characteristic at rank 5')
+    plt.grid()
+    plt.savefig('plot/CMC/CMC_at_rank_5.svg', dpi=1200)
+    plt.clf()
+
+    print("Score at rank 1 (Also Called Recognition Rate): ", CMS[1])
+    print("Score at rank 5: ", CMS[5])
