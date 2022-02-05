@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
 from DataProcessing import k_nearest_neighbour_on_waves, get_time, get_amplitude, get_distance, get_slope, get_angle, \
-    analyze_dataset
+    analyze_dataset, remove_nan
 from Filters import HighPassFilter, BandStopFilter, LowPassFilter, SmoothSignal
 
 
@@ -21,7 +21,11 @@ def process_new_data():
     headers = pd.read_csv('datasets/analyzed_dataset.csv', nrows=0).columns.tolist()
     signal_to_append = []
     for file in Path("./classify/to_be_processed/").glob('*.csv'):
-        patient_datas = pd.Series(signal_processing("classify/to_be_processed/" + file.name), index=old_headers)
+        extracted_signal = signal_processing("classify/to_be_processed/" + file.name)
+        if len(extracted_signal) == 0:
+            os.remove("classify/to_be_processed/" + file.name)
+            continue
+        patient_datas = pd.Series(extracted_signal, index=old_headers)
         signal_to_append.append(patient_datas[headers].tolist())
         os.remove("classify/to_be_processed/" + file.name)
     with open('classify/to_predict.csv', 'a') as file:

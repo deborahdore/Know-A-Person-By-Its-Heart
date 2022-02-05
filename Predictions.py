@@ -38,8 +38,10 @@ def predict_class():
     y_pred = model.predict(X)
     y_pred = enc.inverse_transform(y_pred)
 
-    for y_predicted, y_true in y_pred, y:
-        if y_predicted == y_true:
-            print("CORRECTLY RECOGNIZED:", y_predicted)
+    i = 0
+    while i < len(y):
+        if y_pred[i] == y[i]:
+            print("CORRECTLY RECOGNIZED:", y_pred[i])
         else:
-            print("NOT RECOGNIZED:", "PREDICTED", y_predicted, "INSTEAD OF", y_true)
+            print("NOT RECOGNIZED:", "PREDICTED", y_pred[i], "INSTEAD OF", y[i])
+        i+=1
