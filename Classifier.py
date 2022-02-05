@@ -71,7 +71,7 @@ def train_classifier(dataset, predictions):
     print("Best params", clf.best_params_)
     print("Score on testing dataset", clf.score(X_test, y_test))
 
-    joblib.dump(clf, 'model.joblib', compress=3)
+    joblib.dump(clf.best_estimator_, 'model.joblib', compress=3)
 
     y_pred = clf.predict(X_test)
     y_scores = clf.predict_proba(X_test)

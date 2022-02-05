@@ -56,15 +56,28 @@ def evaluate(dataset):
     plt.clf()
 
     plt.figure()
-    plt.plot(list(range(5 + 1)), prob[0:6])
-    # plt.xlim([0.0, 5.0])
-    plt.ylim([0.0, 1.05])
+    plt.plot(list(range(1, 6)), prob[1:6])
+    plt.plot(list(range(1, 6)), prob[1:6], 'x')
+
+    plt.ylim([0.8530, 0.88])
+    plt.xlim([0.8, 5.5])
     plt.xlabel('Ranks')
     plt.ylabel('Prob. of identification')
-    plt.title('Cumulative Match Characteristic at rank 5')
+    plt.title('Cumulative Match Characteristic')
     plt.grid()
+    plt.legend(loc="lower right")
+    for label, xi, yi in zip(prob[1:6], list(range(1, 6)), prob[1:6]):
+        plt.annotate("{:.3f}".format(label), xy=(xi, yi), xytext=(0, -12), textcoords='offset points')
+
     plt.savefig('plot/CMC/CMC_at_rank_5.svg', dpi=1200)
     plt.clf()
 
     print("Score at rank 1 (Also Called Recognition Rate): ", CMS[1])
+    print("Score at rank 2: ", CMS[2])
+    print("Score at rank 3: ", CMS[3])
+    print("Score at rank 3: ", CMS[4])
     print("Score at rank 5: ", CMS[5])
+
+
+if __name__ == '__main__':
+    evaluate("datasets/predictions_dataset.csv")

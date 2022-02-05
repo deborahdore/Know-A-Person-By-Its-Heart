@@ -115,7 +115,7 @@ def signal_processing(filename):
     features_angle = get_angle(final_peaks, cleaned_signal)
 
     to_file = []
-    to_file.append(patient_name.replace("\n", ""))
+    to_file.append(patient_name)
     to_file.extend(features_time)
     to_file.extend(features_amplitude)
     to_file.extend(features_distance)
