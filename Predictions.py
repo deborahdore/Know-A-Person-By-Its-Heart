@@ -3,6 +3,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.impute import KNNImputer
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
 from Enrollement import process_new_data
@@ -35,6 +36,9 @@ def predict_class():
     enc = LabelEncoder()
     enc.classes_ = np.load('classes.npy', allow_pickle=True)
 
+    imputer = KNNImputer()
+    X = imputer.fit_transform(X)
+
     y_pred = model.predict(X)
     y_pred = enc.inverse_transform(y_pred)
 
@@ -44,4 +48,4 @@ def predict_class():
             print("CORRECTLY RECOGNIZED:", y_pred[i])
         else:
             print("NOT RECOGNIZED:", "PREDICTED", y_pred[i], "INSTEAD OF", y[i])
-        i+=1
+        i += 1

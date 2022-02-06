@@ -70,7 +70,7 @@ def signal_processing(filename):
     if len(r_peak) < 15:
         print("patient:", patient_name)
         print("!!!! Enrollment not successful - non enough peaks")
-        return
+        return []
 
     signal_dwt, waves_dwt = nk.ecg_delineate(cleaned_signal, rpeaks=r_peak, sampling_rate=512, method="dwt",
                                              show=False,
@@ -108,7 +108,7 @@ def signal_processing(filename):
     if len(final_peaks) % 5 != 0:
         print("patient:", patient_name)
         print("!!!! Enrollment not successful - incorrect number of peaks")
-        return
+        return []
 
     features_time = [Tx, Px, Qx, Sx]
     features_time.extend(get_time(final_peaks, cleaned_signal))
