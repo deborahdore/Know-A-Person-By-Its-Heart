@@ -49,3 +49,7 @@ def predict_class():
         else:
             print("NOT RECOGNIZED:", "PREDICTED", y_pred[i], "INSTEAD OF", y[i])
         i += 1
+
+    f = open("classify/to_predict.csv", "w")
+    f.truncate()
+    f.close()
