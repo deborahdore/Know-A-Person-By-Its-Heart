@@ -1,2 +1,5 @@
 # Know A Person By Its Heart
-This project aims to create a biometric system that recognizes a person based on its heart beat. An exaustive description of the project can be found at: 
+An Electrocardiogram has extremely discriminative characteristics in the biometric field. An ECG has the advantage of being universal since we can trace an ECG for every person, unique because is sufficiently distinguishable across individ- uals, acceptable meaning that the process of recording an ECG is not invasive and so the patient shouldn’t be against it, collectable because we can acquire it with modern sensors, permanent since it’s stable and durable. Furthermore, it is particularly resistant to spoofing. However, it changes frequently based on a person emotional and health state. However, ECG are susceptible to several type of noises and therefore signal denoising is an important part in the prepossessing step.
+Our goal is to build a performing and usable system that recognises a person based on an Electrocardiography taken using a modern smartwatch. 
+
+An exhaustive description of the project can be found at: [Report](https://github.com/deborahdore/Know-A-Person-By-Its-Heart/blob/main/Know_A_Person_By_Their_Heart.pdf)
